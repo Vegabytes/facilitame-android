@@ -2,12 +2,12 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import Drawer from "expo-router/drawer";
 import DrawerContent from "./drawer";
-import { Redirect, Slot } from "expo-router";
+import { Redirect } from "expo-router";
 import { View, Image, TouchableOpacity } from "react-native";
 import { useAuth } from "../../context/AuthContext";
 
 export default function AppLayout() {
-  const { isAuthenticated, isReady, profilePicture } = useAuth();
+  const { isAuthenticated, isReady } = useAuth();
 
   if (!isReady) return null;
 
@@ -30,7 +30,20 @@ export default function AppLayout() {
         }}
         drawerContent={() => <DrawerContent />}
       >
-        <Slot />
+        <Drawer.Screen
+          name="tabs"
+          options={{
+            drawerLabel: "Inicio",
+            drawerItemStyle: { display: "none" },
+          }}
+        />
+        <Drawer.Screen
+          name="politica-privacidad"
+          options={{
+            drawerLabel: "Política de privacidad",
+            drawerItemStyle: { display: "none" },
+          }}
+        />
       </Drawer>
     </>
   );
@@ -43,11 +56,11 @@ function CustomHeader() {
     <View className="flex flex-row flex-1 w-full justify-between items-center">
       <Image
         source={require("../../assets/facilitame-letras-logo.png")}
+        resizeMode="contain"
         style={{
           width: 150,
           height: 40,
           marginRight: 10,
-          resizeMode: "contain",
         }}
       />
       <View className="flex flex-row">
@@ -57,9 +70,9 @@ function CustomHeader() {
           <Image
             className="h-12 w-12"
             source={require("../../assets/notifications.png")}
+            resizeMode="contain"
             style={{
               marginRight: 10,
-              resizeMode: "contain",
             }}
           />
         </TouchableOpacity>

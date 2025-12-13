@@ -1,11 +1,15 @@
 import { Tabs } from "expo-router";
-import ServiciosInf from "../../../assets/icons/ServiciosInf";
-import ServiciosInfActive from "../../../assets/icons/ServiciosInfActive";
-import MisSolicitudes from "../../../assets/icons/MisSolicitudes";
-import MisSolicitudesActive from "../../../assets/icons/MisSolicitudesActive";
-import InicioActive from "../../../assets/icons/Inicio";
-import MiCuentaActive from "../../../assets/icons/MiCuentaActive";
 import { Image } from "react-native";
+
+function TabIcon({ source }) {
+  return (
+    <Image
+      source={source}
+      resizeMode="contain"
+      style={{ width: 30, height: 30 }}
+    />
+  );
+}
 
 export default function TabsLayout() {
   return (
@@ -35,26 +39,15 @@ export default function TabsLayout() {
         name="inicio"
         options={{
           tabBarLabel: "Inicio",
-          tabBarIcon: ({ focused }) =>
-            focused ? (
-              <Image
-                source={require("../../../assets/inicio-active.png")}
-                style={{
-                  width: 30,
-                  height: 30,
-                  resizeMode: "contain",
-                }}
-              />
-            ) : (
-              <Image
-                source={require("../../../assets/inicio.png")}
-                style={{
-                  width: 30,
-                  height: 30,
-                  resizeMode: "contain",
-                }}
-              />
-            ),
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              source={
+                focused
+                  ? require("../../../assets/inicio-active.png")
+                  : require("../../../assets/inicio.png")
+              }
+            />
+          ),
         }}
         listeners={({ navigation, route }) => ({
           tabPress: (e) => {
@@ -70,26 +63,15 @@ export default function TabsLayout() {
         name="servicios"
         options={{
           tabBarLabel: "Servicios",
-          tabBarIcon: ({ focused }) =>
-            focused ? (
-              <Image
-                source={require("../../../assets/servicios-active.png")}
-                style={{
-                  width: 30,
-                  height: 30,
-                  resizeMode: "contain",
-                }}
-              />
-            ) : (
-              <Image
-                source={require("../../../assets/servicios.png")}
-                style={{
-                  width: 30,
-                  height: 30,
-                  resizeMode: "contain",
-                }}
-              />
-            ),
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              source={
+                focused
+                  ? require("../../../assets/servicios-active.png")
+                  : require("../../../assets/servicios.png")
+              }
+            />
+          ),
         }}
         listeners={({ navigation, route }) => ({
           tabPress: (e) => {
@@ -105,26 +87,15 @@ export default function TabsLayout() {
         name="mis-solicitudes"
         options={{
           tabBarLabel: "Mis solicitudes",
-          tabBarIcon: ({ focused }) =>
-            focused ? (
-              <Image
-                source={require("../../../assets/mis-solicitudes-active.png")}
-                style={{
-                  width: 30,
-                  height: 30,
-                  resizeMode: "contain",
-                }}
-              />
-            ) : (
-              <Image
-                source={require("../../../assets/mis-solicitudes.png")}
-                style={{
-                  width: 30,
-                  height: 30,
-                  resizeMode: "contain",
-                }}
-              />
-            ),
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              source={
+                focused
+                  ? require("../../../assets/mis-solicitudes-active.png")
+                  : require("../../../assets/mis-solicitudes.png")
+              }
+            />
+          ),
         }}
         listeners={({ navigation, route }) => ({
           tabPress: (e) => {
@@ -140,26 +111,15 @@ export default function TabsLayout() {
         name="mi-cuenta"
         options={{
           tabBarLabel: "Mi cuenta",
-          tabBarIcon: ({ focused }) =>
-            focused ? (
-              <Image
-                source={require("../../../assets/mi-cuenta-active.png")}
-                style={{
-                  width: 30,
-                  height: 30,
-                  resizeMode: "contain",
-                }}
-              />
-            ) : (
-              <Image
-                source={require("../../../assets/mi-cuenta.png")}
-                style={{
-                  width: 30,
-                  height: 30,
-                  resizeMode: "contain",
-                }}
-              />
-            ),
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              source={
+                focused
+                  ? require("../../../assets/mi-cuenta-active.png")
+                  : require("../../../assets/mi-cuenta.png")
+              }
+            />
+          ),
         }}
         listeners={({ navigation, route }) => ({
           tabPress: (e) => {

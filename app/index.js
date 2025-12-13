@@ -9,7 +9,6 @@ export default function Home() {
 
   useEffect(() => {
     if (isReady) {
-      console.log(`🔀 Redirigiendo a: ${isAuthenticated ? "APP" : "LOGIN"}`);
       router.replace(
         isAuthenticated ? "/(app)/tabs/inicio" : "/(auth)/onboarding",
       );

@@ -76,3 +76,11 @@ yarn-error.*
 *.tsbuildinfo
 
 # @end expo-cli
+
+# Sensitive files - credentials and keys
+google-services.json
+*.keystore
+facilitame-*.json
+
+# Claude Code
+.claude/

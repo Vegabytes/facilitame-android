@@ -61,9 +61,9 @@ export default function DashboardScreen() {
             />
             <View className="flex flex-1 flex-column gap-2">
               <Text className="text-2xl font-extrabold">
-                ¡Hola {dashboardData.data.user.name || ""}!
+                ¡Hola {dashboardData?.data?.user?.name || ""}!
               </Text>
-              <Text>{dashboardData.data.user.phone || ""}</Text>
+              <Text>{dashboardData?.data?.user?.phone || ""}</Text>
               <View className="w-full flex flex-row justify-end">
                 <Text>Editar perfil</Text>
               </View>
@@ -94,7 +94,7 @@ export default function DashboardScreen() {
           </View>
         </TouchableOpacity>
 
-        {dashboardData.data.last_requests?.length > 0 && (
+        {dashboardData?.data?.last_requests?.length > 0 && (
           <>
             <TouchableOpacity
               onPress={() => router.push(`/(app)/tabs/mis-solicitudes`)}
@@ -114,7 +114,7 @@ export default function DashboardScreen() {
 
             <FlatList
               scrollEnabled={false}
-              data={dashboardData.data.last_requests}
+              data={dashboardData?.data?.last_requests}
               keyExtractor={(item) => item.id}
               ListEmptyComponent={<></>}
               renderItem={({ item }) => (

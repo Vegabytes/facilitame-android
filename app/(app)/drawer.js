@@ -57,11 +57,8 @@ export default function DrawerContent() {
             <Image
               className="mr-10"
               source={require("../../assets/instagram.png")}
-              style={{
-                width: 31,
-                height: 31,
-                resizeMode: "contain",
-              }}
+              resizeMode="contain"
+              style={{ width: 31, height: 31 }}
             />
           </TouchableOpacity>
 
@@ -73,11 +70,8 @@ export default function DrawerContent() {
             <Image
               className="mr-10"
               source={require("../../assets/tiktok.png")}
-              style={{
-                width: 31,
-                height: 31,
-                resizeMode: "contain",
-              }}
+              resizeMode="contain"
+              style={{ width: 31, height: 31 }}
             />
           </TouchableOpacity>
 
@@ -89,11 +83,8 @@ export default function DrawerContent() {
             <Image
               className="mr-10"
               source={require("../../assets/linkedin.png")}
-              style={{
-                width: 31,
-                height: 31,
-                resizeMode: "contain",
-              }}
+              resizeMode="contain"
+              style={{ width: 31, height: 31 }}
             />
           </TouchableOpacity>
         </View>

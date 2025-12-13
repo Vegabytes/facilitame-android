@@ -32,7 +32,6 @@ export async function fetchWithAuth(endpoint, body = null, options = {}) {
     const headers = {
       ...options.headers,
       Authorization: `Bearer ${token}`,
-      "X-Origin": "app",
     };
 
     // Si es FormData, dejamos que fetch establezca el Content-Type
@@ -115,7 +114,6 @@ export async function fetchPublic(endpoint, body = null) {
   try {
     const headers = {
       "Content-Type": "application/x-www-form-urlencoded",
-      "X-Origin": "app",
     };
 
     const fetchOptions = {

@@ -24,23 +24,15 @@ export default function RootLayout() {
   }
 
   useEffect(() => {
-    Linking.getInitialURL().then((url) => {
-      if (url) console.log("🔗 La app se abrió con la URL:", url);
-    });
-
     // Solo configurar listeners de notificaciones en plataformas nativas
     if (Platform.OS !== "web") {
       notificationListener.current =
-        Notifications.addNotificationReceivedListener((notification) => {
-          console.log("Notificación en primer plano:", notification);
-        });
+        Notifications.addNotificationReceivedListener(() => {});
 
       responseListener.current =
         Notifications.addNotificationResponseReceivedListener((response) => {
-          console.log("Interacción con notificación:", response);
           const deeplink = response.notification.request.content.data.deeplink;
           if (deeplink) {
-            console.log("Deep link recibido:", deeplink);
             router.push(deeplink);
           }
         });
@@ -67,7 +59,6 @@ export default function RootLayout() {
       if (response) {
         const deeplink = response.notification.request.content.data.deeplink;
         if (deeplink) {
-          console.log("Deep link recibido en inicio frío:", deeplink);
           router.push(deeplink);
         }
       }

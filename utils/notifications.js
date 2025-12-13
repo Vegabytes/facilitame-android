@@ -21,7 +21,6 @@ if (Platform.OS !== "web") {
 export async function registerForPushNotificationsAsync() {
   // Las notificaciones push no están soportadas en web
   if (Platform.OS === "web") {
-    console.log("Push notifications no están soportadas en web");
     return null;
   }
 
@@ -53,17 +52,15 @@ export async function registerForPushNotificationsAsync() {
 
   // Obtén el token FCM
   const token = (await Notifications.getDevicePushTokenAsync()).data;
-  console.log("FCM token:", token);
 
   // Envía el token al backend
   if (token) {
     try {
-      const response_temp = await fetchWithAuth("app-token-save-fcm", {
+      await fetchWithAuth("app-token-save-fcm", {
         push_token: token,
       });
-      console.log("Token FCM enviado exitosamente al servidor:", response_temp);
     } catch (error) {
-      console.error("Error al enviar token FCM:", error);
+      // Silenciar error de envío de token
     }
   }
 
