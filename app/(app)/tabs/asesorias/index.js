@@ -31,14 +31,23 @@ export default function AsesoriasScreen() {
         {},
         { silent: true },
       );
+
+      if (__DEV__) {
+        console.log("[Asesorias] Response:", JSON.stringify(response, null, 2));
+      }
+
       if (response?.status === "ok") {
         setHasAdvisory(response.data?.has_advisory || false);
         setAdvisory(response.data?.advisory || null);
         setStats(response.data?.stats || null);
         setNextAppointment(response.data?.next_appointment || null);
+      } else if (__DEV__) {
+        console.log("[Asesorias] Response status not ok:", response?.status);
       }
-    } catch (_error) {
-      // Silenciar error
+    } catch (error) {
+      if (__DEV__) {
+        console.error("[Asesorias] Error:", error);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);

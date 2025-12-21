@@ -127,6 +127,7 @@ export async function fetchPublic(endpoint, body = null) {
   try {
     const headers = {
       "Content-Type": "application/x-www-form-urlencoded",
+      "X-Origin": "app",
     };
 
     const fetchOptions = {
