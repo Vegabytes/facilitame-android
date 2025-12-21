@@ -1,18 +1,20 @@
 import { Tabs } from "expo-router";
 import { Image, View } from "react-native";
 
-function TabIcon({ source, prominent }) {
+function TabIcon({ source, prominent, focused }) {
   if (prominent) {
     return (
       <View
         style={{
-          backgroundColor: "#30D4D1",
+          backgroundColor: focused ? "#1E4C59" : "#30D4D1",
           width: 56,
           height: 56,
           borderRadius: 28,
           justifyContent: "center",
           alignItems: "center",
           marginBottom: 20,
+          borderWidth: focused ? 3 : 0,
+          borderColor: "#30D4D1",
         }}
       >
         <Image
@@ -111,10 +113,11 @@ export default function TabsLayout() {
         name="asesorias"
         options={{
           tabBarLabel: "Asesoría",
-          tabBarIcon: () => (
+          tabBarIcon: ({ focused }) => (
             <TabIcon
               source={require("../../../assets/icon-document.png")}
               prominent
+              focused={focused}
             />
           ),
         }}

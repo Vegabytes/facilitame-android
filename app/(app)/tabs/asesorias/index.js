@@ -11,9 +11,19 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Pressable,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { fetchWithAuth } from "../../../../utils/api";
+
+// Opciones del menú de asesoría
+const MENU_OPTIONS = [
+  { id: "facturas", name: "Facturas", icon: "📄", route: "/tabs/asesorias/facturas" },
+  { id: "citas", name: "Citas", icon: "📅", route: "/tabs/asesorias/citas", statKey: "appointments_needs_confirmation" },
+  { id: "comunicados", name: "Comunicados", icon: "📨", route: "/tabs/asesorias/comunicaciones", statKey: "communications_unread" },
+  { id: "nueva-cita", name: "Nueva cita", icon: "➕", route: "/tabs/asesorias/nueva-cita" },
+  { id: "info", name: "Mi asesoría", icon: "ℹ️", route: "/tabs/asesorias/info" },
+];
 
 export default function AsesoriasScreen() {
   const router = useRouter();
@@ -77,25 +87,6 @@ export default function AsesoriasScreen() {
     });
   };
 
-  const getDepartmentLabel = (dept) => {
-    const labels = {
-      contabilidad: "Contabilidad",
-      fiscalidad: "Fiscalidad",
-      laboral: "Laboral",
-      gestion: "Gestión",
-    };
-    return labels[dept] || dept;
-  };
-
-  const getTypeLabel = (type) => {
-    const labels = {
-      llamada: "Llamada",
-      reunion_presencial: "Presencial",
-      reunion_virtual: "Videollamada",
-    };
-    return labels[type] || type;
-  };
-
   if (loading) {
     return (
       <View className="flex-1 bg-background items-center justify-center">
@@ -113,8 +104,7 @@ export default function AsesoriasScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View className="p-4">
-          {/* Header */}
+        <View className="px-6 py-4">
           <View className="my-5">
             <Text className="text-2xl font-extrabold">Asesorías</Text>
           </View>
@@ -156,151 +146,80 @@ export default function AsesoriasScreen() {
     );
   }
 
-  // Si TIENE asesoría vinculada - Nuevo diseño según mockup
+  // Si TIENE asesoría vinculada - Diseño tipo grid como Servicios
   return (
-    <View className="flex-1 bg-white">
-      <ScrollView
-        className="flex-1"
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        contentContainerStyle={{ flexGrow: 1 }}
-      >
-        {/* Header con nombre de asesoría */}
-        <View className="px-5 pt-5 pb-3">
-          <Text className="text-2xl font-extrabold text-button text-center">
-            {advisory?.name || "Mi Asesoría"}
-          </Text>
+    <ScrollView
+      className="bg-background py-4 px-6"
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      <View className="flex-column gap-5 mb-20">
+        {/* Header */}
+        <View className="my-5">
+          <Text className="text-2xl font-extrabold">Asesorías</Text>
+          <Text className="text-gray-600 mt-1">{advisory?.name}</Text>
         </View>
 
-        {/* 4 botones superiores en fila */}
-        <View className="flex-row justify-around px-4 py-4">
-          {/* Facturas */}
-          <TouchableOpacity
-            className="items-center"
-            onPress={() => router.push("/tabs/asesorias/facturas")}
-            accessibilityLabel="Facturas"
-            accessibilityRole="button"
-          >
-            <View className="bg-primary w-16 h-16 rounded-full items-center justify-center">
-              <Text className="text-2xl">📄</Text>
-            </View>
-            <Text className="mt-2 text-sm font-medium">Facturas</Text>
-          </TouchableOpacity>
-
-          {/* Citas */}
-          <TouchableOpacity
-            className="items-center"
-            onPress={() => router.push("/tabs/asesorias/citas")}
-            accessibilityLabel="Citas"
-            accessibilityRole="button"
-          >
-            <View className="bg-primary w-16 h-16 rounded-full items-center justify-center">
-              <Text className="text-2xl">📅</Text>
-            </View>
-            <Text className="mt-2 text-sm font-medium">Citas</Text>
-            {stats?.appointments_needs_confirmation > 0 && (
-              <View className="absolute -top-1 -right-1 bg-red-500 w-5 h-5 rounded-full items-center justify-center">
-                <Text className="text-white text-xs font-bold">
-                  {stats.appointments_needs_confirmation}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* Comunicados */}
-          <TouchableOpacity
-            className="items-center"
-            onPress={() => router.push("/tabs/asesorias/comunicaciones")}
-            accessibilityLabel="Comunicados"
-            accessibilityRole="button"
-          >
-            <View className="bg-primary w-16 h-16 rounded-full items-center justify-center">
-              <Text className="text-2xl">📨</Text>
-            </View>
-            <Text className="mt-2 text-sm font-medium">Comunicados</Text>
-            {stats?.communications_unread > 0 && (
-              <View className="absolute -top-1 -right-1 bg-red-500 w-5 h-5 rounded-full items-center justify-center">
-                <Text className="text-white text-xs font-bold">
-                  {stats.communications_unread}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* Chat */}
-          <TouchableOpacity
-            className="items-center"
-            onPress={() => router.push("/tabs/asesorias/nueva-cita")}
-            accessibilityLabel="Chat"
-            accessibilityRole="button"
-          >
-            <View className="bg-primary w-16 h-16 rounded-full items-center justify-center">
-              <Text className="text-2xl">💬</Text>
-            </View>
-            <Text className="mt-2 text-sm font-medium">Chat</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Botón grande central - Enviar Factura */}
-        <View className="flex-1 items-center justify-center px-5 py-10">
-          <TouchableOpacity
-            className="bg-primary w-40 h-40 rounded-full items-center justify-center shadow-lg"
-            onPress={() => router.push("/tabs/asesorias/facturas")}
-            accessibilityLabel="Enviar Factura"
-            accessibilityRole="button"
-            style={{
-              shadowColor: "#30D4D1",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 8,
-              elevation: 8,
-            }}
-          >
-            <Text className="text-white text-xl font-bold text-center">
-              Enviar{"\n"}Factura
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Próxima cita (si existe) - Mostrar en la parte inferior */}
+        {/* Próxima cita (si existe) */}
         {nextAppointment && (
           <TouchableOpacity
-            className="mx-5 mb-5 bg-button p-4 rounded-xl"
+            className="w-full p-4 flex-row items-center gap-4 rounded-2xl bg-primary"
             onPress={() =>
               router.push(`/tabs/asesorias/cita/${nextAppointment.id}`)
             }
             accessibilityLabel="Ver próxima cita"
             accessibilityRole="button"
           >
-            <View className="flex-row items-center">
-              <View className="bg-white/20 p-2 rounded-full mr-3">
-                <Text className="text-xl">📅</Text>
-              </View>
-              <View className="flex-1">
-                <Text className="text-white/80 text-xs">Próxima cita</Text>
-                <Text className="text-white font-bold">
-                  {formatDate(nextAppointment.scheduled_date)}
-                </Text>
-              </View>
+            <View className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center">
+              <Text className="text-xl">📅</Text>
+            </View>
+            <View className="flex-1">
+              <Text className="text-white/80 text-xs">Próxima cita</Text>
+              <Text className="text-white font-bold">
+                {formatDate(nextAppointment.scheduled_date)}
+              </Text>
             </View>
           </TouchableOpacity>
         )}
 
-        {/* Link a info de asesoría */}
-        <TouchableOpacity
-          className="mx-5 mb-5 py-3"
-          onPress={() => router.push("/tabs/asesorias/info")}
-          accessibilityLabel="Ver información de mi asesoría"
-          accessibilityRole="button"
-        >
-          <Text className="text-primary text-center font-medium">
-            Ver información de mi asesoría
-          </Text>
-        </TouchableOpacity>
+        {/* Grid de opciones - estilo Servicios */}
+        <View className="flex-row flex-wrap justify-between">
+          {MENU_OPTIONS.map((option) => {
+            const badgeCount = option.statKey ? stats?.[option.statKey] : 0;
 
-        <View className="h-20" />
-      </ScrollView>
-    </View>
+            return (
+              <Pressable
+                key={option.id}
+                className="flex flex-col items-center gap-3 w-24 mb-6"
+                onPress={() => router.push(option.route)}
+              >
+                <View className="h-24 w-24 rounded-full bg-white flex items-center justify-center overflow-hidden relative">
+                  <Text className="text-4xl">{option.icon}</Text>
+                  {badgeCount > 0 && (
+                    <View className="absolute -top-1 -right-1 bg-red-500 w-6 h-6 rounded-full items-center justify-center">
+                      <Text className="text-white text-xs font-bold">
+                        {badgeCount}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <Text className="font-extrabold text-sm w-full text-center">
+                  {option.name}
+                </Text>
+              </Pressable>
+            );
+          })}
+
+          {/* Espaciadores para mantener el grid alineado */}
+          {MENU_OPTIONS.length % 3 !== 0 &&
+            Array(3 - (MENU_OPTIONS.length % 3))
+              .fill(null)
+              .map((_, idx) => (
+                <View key={`empty-${idx}`} className="h-24 w-24" />
+              ))}
+        </View>
+      </View>
+    </ScrollView>
   );
 }
