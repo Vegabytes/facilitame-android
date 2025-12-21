@@ -69,11 +69,11 @@ export default function ServicesScreen() {
             <ActivityIndicator size="large" color="#30D4D1" />
           </View>
         ) : (
-          filasDeServicios.map((fila, index) => (
-            <View key={index} className="flex-row justify-between gap-4 mb-5">
-              {fila.map((servicio, idx) => (
+          filasDeServicios.map((fila, rowIndex) => (
+            <View key={`row-${rowIndex}`} className="flex-row justify-between gap-4 mb-5">
+              {fila.map((servicio) => (
                 <Pressable
-                  key={idx}
+                  key={servicio.id}
                   className="flex flex-col items-center gap-3 w-24"
                   onPress={() => {
                     if (servicio.hasChildren) {

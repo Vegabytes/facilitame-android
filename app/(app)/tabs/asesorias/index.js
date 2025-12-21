@@ -113,50 +113,38 @@ export default function AsesoriasScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View className="p-5">
+        <View className="p-4">
           {/* Header */}
-          <View className="mb-6">
-            <Text className="text-3xl font-extrabold text-button">
-              Asesorías
-            </Text>
-            <Text className="text-base text-gray-600 mt-2">
-              Conecta con tu asesoría para gestionar citas y comunicaciones
-            </Text>
+          <View className="my-5">
+            <Text className="text-2xl font-extrabold">Asesorías</Text>
           </View>
 
           {/* Card vincular */}
-          <View className="bg-white p-6 rounded-2xl mb-5 shadow-sm">
-            <View className="items-center mb-4">
-              <View className="bg-primary/10 p-4 rounded-full mb-3">
-                <Text className="text-4xl">🔗</Text>
-              </View>
-              <Text className="text-xl font-bold text-center">
+          <TouchableOpacity
+            className="w-full h-auto m-0 p-5 flex-row items-center gap-5 rounded-2xl bg-primary mb-4"
+            onPress={() => router.push("/tabs/asesorias/vincular")}
+            accessibilityLabel="Vincular asesoría"
+            accessibilityRole="button"
+          >
+            <View className="h-16 w-16 rounded-full border-2 border-white bg-primary flex items-center justify-center overflow-hidden">
+              <Text className="text-3xl">🔗</Text>
+            </View>
+            <View className="flex-1">
+              <Text className="text-base font-extrabold text-white">
                 Vincula tu asesoría
               </Text>
-              <Text className="text-gray-500 text-center mt-2">
-                Introduce el código que te ha proporcionado tu asesor para
-                acceder a todas las funcionalidades
+              <Text className="text-white/80 text-sm mt-1">
+                Introduce el código de tu asesor
               </Text>
             </View>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              className="bg-primary p-4 rounded-xl flex-row items-center justify-center"
-              onPress={() => router.push("/tabs/asesorias/vincular")}
-              accessibilityLabel="Vincular asesoría"
-              accessibilityRole="button"
-            >
-              <Text className="text-white font-bold text-lg">
-                Vincular con código
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Info */}
-          <View className="bg-blue-50 p-4 rounded-xl">
-            <Text className="text-blue-800 font-semibold mb-2">
+          {/* Info card */}
+          <View className="w-full h-auto m-0 p-5 rounded-2xl bg-white">
+            <Text className="text-base font-extrabold mb-2">
               ¿No tienes código?
             </Text>
-            <Text className="text-blue-700">
+            <Text className="text-gray-600">
               Contacta con tu asesoría y solicita tu código de vinculación. El
               código tiene el formato ASE-XXXXXXXXX.
             </Text>
