@@ -56,6 +56,7 @@ export default function ChildrenScreen() {
       ) : (
         subcategorias.map((servicio) => (
           <Pressable
+            key={servicio.id}
             onPress={() => {
               router.push(
                 `/tabs/servicios/form?id=${servicio.id}&category_name=${servicio.name}&category_img_uri=${category_img_uri}`,
@@ -63,7 +64,7 @@ export default function ChildrenScreen() {
             }}
           >
             <View className="w-full h-auto m-0 p-5 flex-row items-center gap-5 rounded-2xl bg-white mb-5">
-              <View key={servicio.id} className="p-4">
+              <View className="p-4">
                 <Text className="font-extrabold">{servicio.name}</Text>
               </View>
             </View>
