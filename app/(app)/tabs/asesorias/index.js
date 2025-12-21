@@ -159,189 +159,151 @@ export default function AsesoriasScreen() {
     );
   }
 
-  // Si TIENE asesoría vinculada
+  // Si TIENE asesoría vinculada - Nuevo diseño según mockup
   return (
-    <ScrollView
-      className="flex-1 bg-background"
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      <View className="p-5">
+    <View className="flex-1 bg-white">
+      <ScrollView
+        className="flex-1"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        contentContainerStyle={{ flexGrow: 1 }}
+      >
         {/* Header con nombre de asesoría */}
-        <View className="mb-6">
-          <Text className="text-3xl font-extrabold text-button">Asesorías</Text>
-          <View className="flex-row items-center mt-2">
-            <View className="bg-green-100 px-3 py-1 rounded-full">
-              <Text className="text-green-700 font-medium">
-                {advisory?.name || "Asesoría vinculada"}
-              </Text>
-            </View>
-          </View>
+        <View className="px-5 pt-5 pb-3">
+          <Text className="text-2xl font-extrabold text-button text-center">
+            {advisory?.name || "Mi Asesoría"}
+          </Text>
         </View>
 
-        {/* Próxima cita (si existe) */}
+        {/* 4 botones superiores en fila */}
+        <View className="flex-row justify-around px-4 py-4">
+          {/* Facturas */}
+          <TouchableOpacity
+            className="items-center"
+            onPress={() => router.push("/tabs/asesorias/facturas")}
+            accessibilityLabel="Facturas"
+            accessibilityRole="button"
+          >
+            <View className="bg-primary w-16 h-16 rounded-full items-center justify-center">
+              <Text className="text-2xl">📄</Text>
+            </View>
+            <Text className="mt-2 text-sm font-medium">Facturas</Text>
+          </TouchableOpacity>
+
+          {/* Citas */}
+          <TouchableOpacity
+            className="items-center"
+            onPress={() => router.push("/tabs/asesorias/citas")}
+            accessibilityLabel="Citas"
+            accessibilityRole="button"
+          >
+            <View className="bg-primary w-16 h-16 rounded-full items-center justify-center">
+              <Text className="text-2xl">📅</Text>
+            </View>
+            <Text className="mt-2 text-sm font-medium">Citas</Text>
+            {stats?.appointments_needs_confirmation > 0 && (
+              <View className="absolute -top-1 -right-1 bg-red-500 w-5 h-5 rounded-full items-center justify-center">
+                <Text className="text-white text-xs font-bold">
+                  {stats.appointments_needs_confirmation}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {/* Comunicados */}
+          <TouchableOpacity
+            className="items-center"
+            onPress={() => router.push("/tabs/asesorias/comunicaciones")}
+            accessibilityLabel="Comunicados"
+            accessibilityRole="button"
+          >
+            <View className="bg-primary w-16 h-16 rounded-full items-center justify-center">
+              <Text className="text-2xl">📨</Text>
+            </View>
+            <Text className="mt-2 text-sm font-medium">Comunicados</Text>
+            {stats?.communications_unread > 0 && (
+              <View className="absolute -top-1 -right-1 bg-red-500 w-5 h-5 rounded-full items-center justify-center">
+                <Text className="text-white text-xs font-bold">
+                  {stats.communications_unread}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {/* Chat */}
+          <TouchableOpacity
+            className="items-center"
+            onPress={() => router.push("/tabs/asesorias/nueva-cita")}
+            accessibilityLabel="Chat"
+            accessibilityRole="button"
+          >
+            <View className="bg-primary w-16 h-16 rounded-full items-center justify-center">
+              <Text className="text-2xl">💬</Text>
+            </View>
+            <Text className="mt-2 text-sm font-medium">Chat</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Botón grande central - Enviar Factura */}
+        <View className="flex-1 items-center justify-center px-5 py-10">
+          <TouchableOpacity
+            className="bg-primary w-40 h-40 rounded-full items-center justify-center shadow-lg"
+            onPress={() => router.push("/tabs/asesorias/facturas")}
+            accessibilityLabel="Enviar Factura"
+            accessibilityRole="button"
+            style={{
+              shadowColor: "#30D4D1",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 8,
+            }}
+          >
+            <Text className="text-white text-xl font-bold text-center">
+              Enviar{"\n"}Factura
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Próxima cita (si existe) - Mostrar en la parte inferior */}
         {nextAppointment && (
           <TouchableOpacity
-            className="bg-primary p-5 rounded-2xl mb-5"
+            className="mx-5 mb-5 bg-button p-4 rounded-xl"
             onPress={() =>
               router.push(`/tabs/asesorias/cita/${nextAppointment.id}`)
             }
             accessibilityLabel="Ver próxima cita"
             accessibilityRole="button"
           >
-            <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center">
+              <View className="bg-white/20 p-2 rounded-full mr-3">
+                <Text className="text-xl">📅</Text>
+              </View>
               <View className="flex-1">
-                <Text className="text-white/80 text-sm">Próxima cita</Text>
-                <Text className="text-white font-bold text-lg mt-1">
+                <Text className="text-white/80 text-xs">Próxima cita</Text>
+                <Text className="text-white font-bold">
                   {formatDate(nextAppointment.scheduled_date)}
                 </Text>
-                <Text className="text-white/80 mt-1">
-                  {getTypeLabel(nextAppointment.type)} •{" "}
-                  {getDepartmentLabel(nextAppointment.department)}
-                </Text>
-              </View>
-              <View className="bg-white/20 p-3 rounded-full">
-                <Text className="text-2xl">📅</Text>
               </View>
             </View>
           </TouchableOpacity>
         )}
 
-        {/* Alertas */}
-        {stats?.appointments_needs_confirmation > 0 && (
-          <TouchableOpacity
-            className="bg-amber-50 border border-amber-200 p-4 rounded-xl mb-4 flex-row items-center"
-            onPress={() => router.push("/tabs/asesorias/citas")}
-            accessibilityLabel="Tienes citas pendientes de confirmar"
-            accessibilityRole="button"
-          >
-            <Text className="text-2xl mr-3">⚠️</Text>
-            <View className="flex-1">
-              <Text className="text-amber-800 font-semibold">
-                Citas pendientes de confirmar
-              </Text>
-              <Text className="text-amber-700">
-                Tienes {stats.appointments_needs_confirmation} cita(s) esperando
-                tu confirmación
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
-
-        {/* Menú principal */}
-        <Text className="text-lg font-bold mb-4">Gestiona tu asesoría</Text>
-
-        <View className="gap-3">
-          {/* Citas */}
-          <TouchableOpacity
-            className="bg-white p-5 rounded-xl flex-row items-center"
-            onPress={() => router.push("/tabs/asesorias/citas")}
-            accessibilityLabel="Mis citas"
-            accessibilityRole="button"
-          >
-            <View className="bg-blue-100 p-3 rounded-full mr-4">
-              <Text className="text-2xl">📅</Text>
-            </View>
-            <View className="flex-1">
-              <Text className="font-bold text-lg">Mis citas</Text>
-              <Text className="text-gray-500">
-                {stats?.appointments_scheduled > 0
-                  ? `${stats.appointments_scheduled} cita(s) programada(s)`
-                  : "Gestiona tus citas con la asesoría"}
-              </Text>
-            </View>
-            <Text className="text-gray-400 text-xl">›</Text>
-          </TouchableOpacity>
-
-          {/* Solicitar cita */}
-          <TouchableOpacity
-            className="bg-white p-5 rounded-xl flex-row items-center"
-            onPress={() => router.push("/tabs/asesorias/nueva-cita")}
-            accessibilityLabel="Solicitar cita"
-            accessibilityRole="button"
-          >
-            <View className="bg-green-100 p-3 rounded-full mr-4">
-              <Text className="text-2xl">➕</Text>
-            </View>
-            <View className="flex-1">
-              <Text className="font-bold text-lg">Solicitar cita</Text>
-              <Text className="text-gray-500">
-                Agenda una nueva cita con tu asesor
-              </Text>
-            </View>
-            <Text className="text-gray-400 text-xl">›</Text>
-          </TouchableOpacity>
-
-          {/* Comunicaciones */}
-          <TouchableOpacity
-            className="bg-white p-5 rounded-xl flex-row items-center"
-            onPress={() => router.push("/tabs/asesorias/comunicaciones")}
-            accessibilityLabel="Comunicaciones"
-            accessibilityRole="button"
-          >
-            <View className="bg-purple-100 p-3 rounded-full mr-4">
-              <Text className="text-2xl">📨</Text>
-            </View>
-            <View className="flex-1">
-              <Text className="font-bold text-lg">Comunicaciones</Text>
-              <Text className="text-gray-500">
-                {stats?.communications_unread > 0
-                  ? `${stats.communications_unread} mensaje(s) sin leer`
-                  : "Mensajes de tu asesoría"}
-              </Text>
-            </View>
-            {stats?.communications_unread > 0 && (
-              <View className="bg-red-500 w-6 h-6 rounded-full items-center justify-center mr-2">
-                <Text className="text-white text-xs font-bold">
-                  {stats.communications_unread}
-                </Text>
-              </View>
-            )}
-            <Text className="text-gray-400 text-xl">›</Text>
-          </TouchableOpacity>
-
-          {/* Facturas */}
-          <TouchableOpacity
-            className="bg-white p-5 rounded-xl flex-row items-center"
-            onPress={() => router.push("/tabs/asesorias/facturas")}
-            accessibilityLabel="Mis facturas"
-            accessibilityRole="button"
-          >
-            <View className="bg-amber-100 p-3 rounded-full mr-4">
-              <Text className="text-2xl">📄</Text>
-            </View>
-            <View className="flex-1">
-              <Text className="font-bold text-lg">Mis facturas</Text>
-              <Text className="text-gray-500">
-                Envía facturas a tu asesoría
-              </Text>
-            </View>
-            <Text className="text-gray-400 text-xl">›</Text>
-          </TouchableOpacity>
-
-          {/* Info asesoría */}
-          <TouchableOpacity
-            className="bg-white p-5 rounded-xl flex-row items-center"
-            onPress={() => router.push("/tabs/asesorias/info")}
-            accessibilityLabel="Información de asesoría"
-            accessibilityRole="button"
-          >
-            <View className="bg-gray-100 p-3 rounded-full mr-4">
-              <Text className="text-2xl">ℹ️</Text>
-            </View>
-            <View className="flex-1">
-              <Text className="font-bold text-lg">Mi asesoría</Text>
-              <Text className="text-gray-500">
-                Información y datos de contacto
-              </Text>
-            </View>
-            <Text className="text-gray-400 text-xl">›</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Link a info de asesoría */}
+        <TouchableOpacity
+          className="mx-5 mb-5 py-3"
+          onPress={() => router.push("/tabs/asesorias/info")}
+          accessibilityLabel="Ver información de mi asesoría"
+          accessibilityRole="button"
+        >
+          <Text className="text-primary text-center font-medium">
+            Ver información de mi asesoría
+          </Text>
+        </TouchableOpacity>
 
         <View className="h-20" />
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }

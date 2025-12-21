@@ -1,7 +1,28 @@
 import { Tabs } from "expo-router";
-import { Image } from "react-native";
+import { Image, View } from "react-native";
 
-function TabIcon({ source }) {
+function TabIcon({ source, prominent }) {
+  if (prominent) {
+    return (
+      <View
+        style={{
+          backgroundColor: "#30D4D1",
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          justifyContent: "center",
+          alignItems: "center",
+          marginBottom: 20,
+        }}
+      >
+        <Image
+          source={source}
+          resizeMode="contain"
+          style={{ width: 28, height: 28, tintColor: "#FFFFFF" }}
+        />
+      </View>
+    );
+  }
   return (
     <Image
       source={source}
@@ -35,6 +56,7 @@ export default function TabsLayout() {
         tabBarHideOnKeyboard: true,
       }}
     >
+      {/* 1. Inicio */}
       <Tabs.Screen
         name="inicio"
         options={{
@@ -59,6 +81,7 @@ export default function TabsLayout() {
           },
         })}
       />
+      {/* 2. Servicios */}
       <Tabs.Screen
         name="servicios"
         options={{
@@ -83,10 +106,33 @@ export default function TabsLayout() {
           },
         })}
       />
+      {/* 3. Asesoría (PROMINENTE - Centro) */}
+      <Tabs.Screen
+        name="asesorias"
+        options={{
+          tabBarLabel: "Asesoría",
+          tabBarIcon: () => (
+            <TabIcon
+              source={require("../../../assets/icon-document.png")}
+              prominent
+            />
+          ),
+        }}
+        listeners={({ navigation, route }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: route.name }],
+            });
+          },
+        })}
+      />
+      {/* 4. Mis Servicios */}
       <Tabs.Screen
         name="mis-solicitudes"
         options={{
-          tabBarLabel: "Mis solicitudes",
+          tabBarLabel: "Mis Servicios",
           tabBarIcon: ({ focused }) => (
             <TabIcon
               source={
@@ -107,10 +153,11 @@ export default function TabsLayout() {
           },
         })}
       />
+      {/* 5. Perfil */}
       <Tabs.Screen
         name="mi-cuenta"
         options={{
-          tabBarLabel: "Mi cuenta",
+          tabBarLabel: "Perfil",
           tabBarIcon: ({ focused }) => (
             <TabIcon
               source={
@@ -131,6 +178,7 @@ export default function TabsLayout() {
           },
         })}
       />
+      {/* Ocultos */}
       <Tabs.Screen
         name="notificaciones"
         options={{
