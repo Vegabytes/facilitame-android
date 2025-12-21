@@ -1,35 +1,28 @@
 import { Tabs } from "expo-router";
 import { Image, View } from "react-native";
 
-function TabIcon({ source, prominent, focused }) {
-  if (prominent) {
+function TabIcon({ source, sourceActive, focused }) {
+  // Si hay versión activa, usar esa imagen cuando está focused
+  if (sourceActive) {
     return (
-      <View
-        style={{
-          backgroundColor: focused ? "#1E4C59" : "#30D4D1",
-          width: 56,
-          height: 56,
-          borderRadius: 28,
-          justifyContent: "center",
-          alignItems: "center",
-          marginBottom: 20,
-          borderWidth: focused ? 3 : 0,
-          borderColor: "#30D4D1",
-        }}
-      >
-        <Image
-          source={source}
-          resizeMode="contain"
-          style={{ width: 28, height: 28, tintColor: "#FFFFFF" }}
-        />
-      </View>
+      <Image
+        source={focused ? sourceActive : source}
+        resizeMode="contain"
+        style={{ width: 30, height: 30 }}
+      />
     );
   }
+
+  // Si no hay versión activa, aplicar tintColor
   return (
     <Image
       source={source}
       resizeMode="contain"
-      style={{ width: 30, height: 30 }}
+      style={{
+        width: 30,
+        height: 30,
+        tintColor: focused ? "#30D4D1" : "#888888"
+      }}
     />
   );
 }
@@ -65,11 +58,9 @@ export default function TabsLayout() {
           tabBarLabel: "Inicio",
           tabBarIcon: ({ focused }) => (
             <TabIcon
-              source={
-                focused
-                  ? require("../../../assets/inicio-active.png")
-                  : require("../../../assets/inicio.png")
-              }
+              source={require("../../../assets/inicio.png")}
+              sourceActive={require("../../../assets/inicio-active.png")}
+              focused={focused}
             />
           ),
         }}
@@ -90,11 +81,9 @@ export default function TabsLayout() {
           tabBarLabel: "Servicios",
           tabBarIcon: ({ focused }) => (
             <TabIcon
-              source={
-                focused
-                  ? require("../../../assets/servicios-active.png")
-                  : require("../../../assets/servicios.png")
-              }
+              source={require("../../../assets/servicios.png")}
+              sourceActive={require("../../../assets/servicios-active.png")}
+              focused={focused}
             />
           ),
         }}
@@ -108,7 +97,7 @@ export default function TabsLayout() {
           },
         })}
       />
-      {/* 3. Asesoría (PROMINENTE - Centro) */}
+      {/* 3. Asesoría */}
       <Tabs.Screen
         name="asesorias"
         options={{
@@ -116,7 +105,6 @@ export default function TabsLayout() {
           tabBarIcon: ({ focused }) => (
             <TabIcon
               source={require("../../../assets/icon-document.png")}
-              prominent
               focused={focused}
             />
           ),
@@ -138,11 +126,9 @@ export default function TabsLayout() {
           tabBarLabel: "Mis Servicios",
           tabBarIcon: ({ focused }) => (
             <TabIcon
-              source={
-                focused
-                  ? require("../../../assets/mis-solicitudes-active.png")
-                  : require("../../../assets/mis-solicitudes.png")
-              }
+              source={require("../../../assets/mis-solicitudes.png")}
+              sourceActive={require("../../../assets/mis-solicitudes-active.png")}
+              focused={focused}
             />
           ),
         }}
@@ -163,11 +149,9 @@ export default function TabsLayout() {
           tabBarLabel: "Perfil",
           tabBarIcon: ({ focused }) => (
             <TabIcon
-              source={
-                focused
-                  ? require("../../../assets/mi-cuenta-active.png")
-                  : require("../../../assets/mi-cuenta.png")
-              }
+              source={require("../../../assets/mi-cuenta.png")}
+              sourceActive={require("../../../assets/mi-cuenta-active.png")}
+              focused={focused}
             />
           ),
         }}
@@ -184,6 +168,15 @@ export default function TabsLayout() {
       {/* Ocultos */}
       <Tabs.Screen
         name="notificaciones"
+        options={{
+          tabBarButton: () => null,
+          tabBarItemStyle: {
+            display: "none",
+          },
+        }}
+      />
+      <Tabs.Screen
+        name="incidencias"
         options={{
           tabBarButton: () => null,
           tabBarItemStyle: {

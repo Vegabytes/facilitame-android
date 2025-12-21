@@ -60,12 +60,12 @@ export default function DashboardScreen() {
               className="h-20 w-20 rounded-full border-2 border-white"
             />
             <View className="flex flex-1 flex-column gap-2">
-              <Text className="text-2xl font-extrabold">
+              <Text className="text-2xl font-extrabold text-white">
                 ¡Hola {dashboardData?.data?.user?.name || ""}!
               </Text>
-              <Text>{dashboardData?.data?.user?.phone || ""}</Text>
+              <Text className="text-white/80">{dashboardData?.data?.user?.phone || ""}</Text>
               <View className="w-full flex flex-row justify-end">
-                <Text>Editar perfil</Text>
+                <Text className="text-white/70">Editar perfil ›</Text>
               </View>
             </View>
           </View>
@@ -74,23 +74,29 @@ export default function DashboardScreen() {
         <TouchableOpacity
           onPress={() => router.push("/(app)/tabs/notificaciones")}
         >
-          <View className="w-full h-auto m-0 p-5 flex-row items-center gap-5 rounded-2xl bg-primary">
-            <View className="h-16 w-16 rounded-full border-2 border-white bg-primary flex items-center justify-center overflow-hidden">
-              <Image
-                source={require("../../../../assets/notifications-white.png")}
-                className="h-9 w-9 object-contain"
-              />
+          <View className="w-full h-auto m-0 p-5 flex-row items-center gap-5 rounded-2xl bg-white">
+            <View className="h-14 w-14 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
+              <Text className="text-2xl">🔔</Text>
             </View>
-            <Text className="text-base font-extrabold">
-              {dashboardData?.data?.notifications_unread > 0 ? (
-                <>
-                  Tienes {dashboardData.data.notifications_unread}{" "}
-                  notificaciones sin leer
-                </>
-              ) : (
-                <>No tienes notificaciones pendientes</>
-              )}
-            </Text>
+            <View className="flex-1">
+              <Text className="text-base font-extrabold text-button">
+                {dashboardData?.data?.notifications_unread > 0 ? (
+                  <>
+                    Tienes {dashboardData.data.notifications_unread}{" "}
+                    notificaciones sin leer
+                  </>
+                ) : (
+                  <>No tienes notificaciones pendientes</>
+                )}
+              </Text>
+            </View>
+            {dashboardData?.data?.notifications_unread > 0 && (
+              <View className="bg-red-500 px-2 py-1 rounded-full">
+                <Text className="text-white text-xs font-bold">
+                  {dashboardData.data.notifications_unread}
+                </Text>
+              </View>
+            )}
           </View>
         </TouchableOpacity>
 
@@ -99,16 +105,19 @@ export default function DashboardScreen() {
             <TouchableOpacity
               onPress={() => router.push(`/(app)/tabs/mis-solicitudes`)}
             >
-              <View className="w-full h-auto m-0 p-5 flex-row items-center gap-5 rounded-2xl bg-primary">
-                <View className="h-16 w-16 rounded-full border-2 border-white bg-primary flex items-center justify-center overflow-hidden">
-                  <Image
-                    source={require("../../../../assets/services-white.png")}
-                    className="h-8 w-8 object-contain"
-                  />
+              <View className="w-full h-auto m-0 p-5 flex-row items-center gap-5 rounded-2xl bg-white">
+                <View className="h-14 w-14 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
+                  <Text className="text-2xl">📋</Text>
                 </View>
-                <Text className="text-base font-extrabold">
-                  Mis servicios contratados
-                </Text>
+                <View className="flex-1">
+                  <Text className="text-base font-extrabold text-button">
+                    Mis servicios contratados
+                  </Text>
+                  <Text className="text-gray-500 text-sm">
+                    {dashboardData?.data?.last_requests?.length || 0} servicios activos
+                  </Text>
+                </View>
+                <Text className="text-gray-400 text-xl">›</Text>
               </View>
             </TouchableOpacity>
 
@@ -149,16 +158,18 @@ export default function DashboardScreen() {
           </>
         )}
 
-        <View className="w-full h-auto m-0 p-5 flex-row items-center gap-5 rounded-2xl bg-primary">
-          <View className="h-16 w-16 rounded-full border-2 border-white bg-primary flex items-center justify-center overflow-hidden">
-            <Image
-              source={require("../../../../assets/calendar-white.png")}
-              className="h-8 w-8 object-contain"
-            ></Image>
+        <View className="w-full h-auto m-0 p-5 flex-row items-center gap-5 rounded-2xl bg-white">
+          <View className="h-14 w-14 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
+            <Text className="text-2xl">📅</Text>
           </View>
-          <Text className="text-base font-extrabold">
-            Próximos vencimientos
-          </Text>
+          <View className="flex-1">
+            <Text className="text-base font-extrabold text-button">
+              Próximos vencimientos
+            </Text>
+            <Text className="text-gray-500 text-sm">
+              Fechas importantes
+            </Text>
+          </View>
         </View>
 
         <ProximosVencimientos />

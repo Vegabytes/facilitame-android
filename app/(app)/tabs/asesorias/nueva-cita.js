@@ -13,6 +13,7 @@ import {
   Platform,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { fetchWithAuth } from "../../../../utils/api";
 import Input from "../../../../components/ui/Input";
 import Button from "../../../../components/ui/Button";
@@ -51,10 +52,14 @@ export default function NuevaCitaScreen() {
   // Form fields
   const [type, setType] = useState("");
   const [department, setDepartment] = useState("");
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedTime, setSelectedTime] = useState(null);
   const [reason, setReason] = useState("");
   const [errors, setErrors] = useState({});
+
+  // Date/Time picker visibility
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   // Cargar datos de asesoría
   useFocusEffect(
@@ -86,32 +91,43 @@ export default function NuevaCitaScreen() {
 
     if (!type) newErrors.type = "Selecciona un tipo de cita";
     if (!department) newErrors.department = "Selecciona un departamento";
-    if (!date) newErrors.date = "Introduce una fecha";
-    if (!time) newErrors.time = "Introduce una hora";
+    if (!selectedDate) newErrors.date = "Selecciona una fecha";
+    if (!selectedTime) newErrors.time = "Selecciona una hora";
     if (!reason || reason.trim().length < 10) {
       newErrors.reason = "Describe el motivo (mínimo 10 caracteres)";
     }
 
     // Validar fecha futura
-    if (date && time) {
-      const proposedDate = new Date(`${date}T${time}`);
-      if (proposedDate <= new Date()) {
+    if (selectedDate && selectedTime) {
+      const proposedDateTime = new Date(selectedDate);
+      proposedDateTime.setHours(selectedTime.getHours(), selectedTime.getMinutes());
+      if (proposedDateTime <= new Date()) {
         newErrors.date = "La fecha debe ser futura";
       }
     }
 
-    // Validar formato fecha
-    if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      newErrors.date = "Formato: AAAA-MM-DD";
-    }
-
-    // Validar formato hora
-    if (time && !/^\d{2}:\d{2}$/.test(time)) {
-      newErrors.time = "Formato: HH:MM";
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  // Formatear fecha para mostrar
+  const formatDisplayDate = (date) => {
+    if (!date) return "";
+    return date.toLocaleDateString("es-ES", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  // Formatear hora para mostrar
+  const formatDisplayTime = (time) => {
+    if (!time) return "";
+    return time.toLocaleTimeString("es-ES", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   const handleSubmit = async () => {
@@ -120,7 +136,10 @@ export default function NuevaCitaScreen() {
     setLoading(true);
 
     try {
-      const proposedDate = `${date} ${time}:00`;
+      // Combinar fecha y hora
+      const dateStr = selectedDate.toISOString().split("T")[0];
+      const timeStr = `${String(selectedTime.getHours()).padStart(2, "0")}:${String(selectedTime.getMinutes()).padStart(2, "0")}:00`;
+      const proposedDate = `${dateStr} ${timeStr}`;
 
       const response = await fetchWithAuth("customer-request-appointment", {
         advisory_id: advisoryId,
@@ -160,7 +179,26 @@ export default function NuevaCitaScreen() {
   const getMinDate = () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split("T")[0];
+    tomorrow.setHours(0, 0, 0, 0);
+    return tomorrow;
+  };
+
+  // Handler para cambio de fecha
+  const onDateChange = (event, date) => {
+    setShowDatePicker(Platform.OS === "ios");
+    if (date) {
+      setSelectedDate(date);
+      setErrors((e) => ({ ...e, date: null }));
+    }
+  };
+
+  // Handler para cambio de hora
+  const onTimeChange = (event, time) => {
+    setShowTimePicker(Platform.OS === "ios");
+    if (time) {
+      setSelectedTime(time);
+      setErrors((e) => ({ ...e, time: null }));
+    }
   };
 
   return (
@@ -267,37 +305,69 @@ export default function NuevaCitaScreen() {
             </Text>
 
             <View className="flex-row gap-3">
+              {/* Selector de fecha */}
               <View className="flex-1">
-                <Input
-                  label="Fecha"
-                  placeholder={getMinDate()}
-                  value={date}
-                  onChangeText={(text) => {
-                    setDate(text);
-                    setErrors((e) => ({ ...e, date: null }));
-                  }}
-                  error={errors.date}
-                  keyboardType="numeric"
-                  accessibilityLabel="Fecha de la cita"
-                  accessibilityHint="Formato año-mes-día, por ejemplo 2024-12-25"
-                />
+                <Text className="font-semibold mb-1 ml-1 text-gray-700">Fecha</Text>
+                <TouchableOpacity
+                  className={`h-14 px-4 bg-white rounded-2xl border-2 justify-center ${
+                    errors.date ? "border-red-500" : "border-bright"
+                  }`}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Text className={selectedDate ? "text-black" : "text-gray-400"}>
+                    {selectedDate ? formatDisplayDate(selectedDate) : "Seleccionar"}
+                  </Text>
+                </TouchableOpacity>
+                {errors.date && (
+                  <Text className="text-white text-sm mt-1 ml-1 bg-red-500/80 px-2 py-1 rounded">
+                    {errors.date}
+                  </Text>
+                )}
               </View>
+
+              {/* Selector de hora */}
               <View className="flex-1">
-                <Input
-                  label="Hora"
-                  placeholder="10:00"
-                  value={time}
-                  onChangeText={(text) => {
-                    setTime(text);
-                    setErrors((e) => ({ ...e, time: null }));
-                  }}
-                  error={errors.time}
-                  keyboardType="numeric"
-                  accessibilityLabel="Hora de la cita"
-                  accessibilityHint="Formato 24 horas, por ejemplo 10:00"
-                />
+                <Text className="font-semibold mb-1 ml-1 text-gray-700">Hora</Text>
+                <TouchableOpacity
+                  className={`h-14 px-4 bg-white rounded-2xl border-2 justify-center ${
+                    errors.time ? "border-red-500" : "border-bright"
+                  }`}
+                  onPress={() => setShowTimePicker(true)}
+                >
+                  <Text className={selectedTime ? "text-black" : "text-gray-400"}>
+                    {selectedTime ? formatDisplayTime(selectedTime) : "Seleccionar"}
+                  </Text>
+                </TouchableOpacity>
+                {errors.time && (
+                  <Text className="text-white text-sm mt-1 ml-1 bg-red-500/80 px-2 py-1 rounded">
+                    {errors.time}
+                  </Text>
+                )}
               </View>
             </View>
+
+            {/* DateTimePickers */}
+            {showDatePicker && (
+              <DateTimePicker
+                value={selectedDate || getMinDate()}
+                mode="date"
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                minimumDate={getMinDate()}
+                onChange={onDateChange}
+                locale="es-ES"
+              />
+            )}
+
+            {showTimePicker && (
+              <DateTimePicker
+                value={selectedTime || new Date()}
+                mode="time"
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                is24Hour={true}
+                onChange={onTimeChange}
+                locale="es-ES"
+              />
+            )}
 
             <View className="bg-blue-50 p-3 rounded-lg mt-3">
               <Text className="text-blue-700 text-sm">

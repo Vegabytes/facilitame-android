@@ -44,22 +44,26 @@ export default function Input({
           multiline={multiline}
           numberOfLines={numberOfLines}
           editable={editable}
-          className={`w-full ${heightClass} px-5 ${secureTextEntry ? 'pr-14' : ''} bg-white rounded-2xl border-2 ${borderClass} ${!editable ? 'bg-gray-100' : ''}`}
+          className={`w-full ${heightClass} px-5 ${secureTextEntry ? 'pr-20' : ''} bg-white rounded-2xl border-2 ${borderClass} ${!editable ? 'bg-gray-100' : ''}`}
           style={multiline ? { textAlignVertical: 'top', paddingTop: 12 } : {}}
         />
         {secureTextEntry && (
           <TouchableOpacity
-            className="absolute right-4 top-0 bottom-0 justify-center"
+            className="absolute right-4 top-0 bottom-0 justify-center px-2"
             onPress={() => setShowPassword(!showPassword)}
             accessibilityLabel={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
             accessibilityRole="button"
           >
-            <Text className="text-xl">{showPassword ? "🙈" : "👁️"}</Text>
+            <Text className="text-sm text-gray-500 font-medium">
+              {showPassword ? "Ocultar" : "Mostrar"}
+            </Text>
           </TouchableOpacity>
         )}
       </View>
       {error && (
-        <Text className="text-red-500 text-sm mt-1 ml-1">{error}</Text>
+        <Text className="text-white text-sm mt-1 ml-1 bg-red-500/80 px-2 py-1 rounded">
+          {error}
+        </Text>
       )}
     </View>
   );

@@ -11,18 +11,17 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  Pressable,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { fetchWithAuth } from "../../../../utils/api";
 
 // Opciones del menú de asesoría
 const MENU_OPTIONS = [
-  { id: "facturas", name: "Facturas", icon: "📄", route: "/tabs/asesorias/facturas" },
-  { id: "citas", name: "Citas", icon: "📅", route: "/tabs/asesorias/citas", statKey: "appointments_needs_confirmation" },
-  { id: "comunicados", name: "Comunicados", icon: "📨", route: "/tabs/asesorias/comunicaciones", statKey: "communications_unread" },
-  { id: "nueva-cita", name: "Nueva cita", icon: "➕", route: "/tabs/asesorias/nueva-cita" },
-  { id: "info", name: "Mi asesoría", icon: "ℹ️", route: "/tabs/asesorias/info" },
+  { id: "facturas", name: "Facturas", icon: "📄", description: "Ver facturas emitidas", route: "/tabs/asesorias/facturas" },
+  { id: "citas", name: "Citas", icon: "📅", description: "Gestionar tus citas", route: "/tabs/asesorias/citas", statKey: "appointments_needs_confirmation" },
+  { id: "comunicados", name: "Comunicados", icon: "💬", description: "Mensajes de tu asesoría", route: "/tabs/asesorias/comunicaciones", statKey: "communications_unread" },
+  { id: "nueva-cita", name: "Nueva cita", icon: "➕", description: "Solicitar una cita", route: "/tabs/asesorias/nueva-cita" },
+  { id: "info", name: "Mi asesoría", icon: "🏢", description: "Información de contacto", route: "/tabs/asesorias/info" },
 ];
 
 export default function AsesoriasScreen() {
@@ -116,7 +115,7 @@ export default function AsesoriasScreen() {
             accessibilityLabel="Vincular asesoría"
             accessibilityRole="button"
           >
-            <View className="h-16 w-16 rounded-full border-2 border-white bg-primary flex items-center justify-center overflow-hidden">
+            <View className="h-16 w-16 rounded-full bg-white/20 flex items-center justify-center">
               <Text className="text-3xl">🔗</Text>
             </View>
             <View className="flex-1">
@@ -146,79 +145,96 @@ export default function AsesoriasScreen() {
     );
   }
 
-  // Si TIENE asesoría vinculada - Diseño tipo grid como Servicios
+  // Si TIENE asesoría vinculada
   return (
     <ScrollView
-      className="bg-background py-4 px-6"
+      className="flex-1 bg-background"
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
-      <View className="flex-column gap-5 mb-20">
-        {/* Header */}
-        <View className="my-5">
-          <Text className="text-2xl font-extrabold">Asesorías</Text>
-          <Text className="text-gray-600 mt-1">{advisory?.name}</Text>
+      <View className="px-6 py-4 mb-20">
+        {/* Header con info de asesoría */}
+        <View className="bg-primary rounded-3xl p-5 mb-6">
+          <Text className="text-white/70 text-sm">Tu asesoría</Text>
+          <Text className="text-white text-xl font-extrabold mt-1">
+            {advisory?.name || "Asesoría"}
+          </Text>
+
+          {/* Próxima cita inline */}
+          {nextAppointment && (
+            <TouchableOpacity
+              className="mt-4 bg-white/20 rounded-2xl p-3 flex-row items-center"
+              onPress={() => router.push(`/tabs/asesorias/cita/${nextAppointment.id}`)}
+            >
+              <Text className="text-2xl mr-3">📅</Text>
+              <View className="flex-1">
+                <Text className="text-white/70 text-xs">Próxima cita</Text>
+                <Text className="text-white font-bold text-sm">
+                  {formatDate(nextAppointment.scheduled_date)}
+                </Text>
+              </View>
+              <Text className="text-white text-lg">›</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Próxima cita (si existe) */}
-        {nextAppointment && (
-          <TouchableOpacity
-            className="w-full p-4 flex-row items-center gap-4 rounded-2xl bg-primary"
-            onPress={() =>
-              router.push(`/tabs/asesorias/cita/${nextAppointment.id}`)
-            }
-            accessibilityLabel="Ver próxima cita"
-            accessibilityRole="button"
-          >
-            <View className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center">
-              <Text className="text-xl">📅</Text>
-            </View>
-            <View className="flex-1">
-              <Text className="text-white/80 text-xs">Próxima cita</Text>
-              <Text className="text-white font-bold">
-                {formatDate(nextAppointment.scheduled_date)}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
-
-        {/* Grid de opciones - estilo Servicios */}
+        {/* Grid de opciones 2x2 + 1 */}
         <View className="flex-row flex-wrap justify-between">
-          {MENU_OPTIONS.map((option) => {
+          {MENU_OPTIONS.slice(0, 4).map((option) => {
             const badgeCount = option.statKey ? stats?.[option.statKey] : 0;
 
             return (
-              <Pressable
+              <TouchableOpacity
                 key={option.id}
-                className="flex flex-col items-center gap-3 w-24 mb-6"
+                className="w-[48%] bg-white rounded-2xl p-4 mb-4"
                 onPress={() => router.push(option.route)}
+                activeOpacity={0.7}
+                style={{
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.05,
+                  shadowRadius: 8,
+                  elevation: 2,
+                }}
               >
-                <View className="h-24 w-24 rounded-full bg-white flex items-center justify-center overflow-hidden relative">
+                <View className="flex-row items-start justify-between mb-3">
                   <Text className="text-4xl">{option.icon}</Text>
                   {badgeCount > 0 && (
-                    <View className="absolute -top-1 -right-1 bg-red-500 w-6 h-6 rounded-full items-center justify-center">
-                      <Text className="text-white text-xs font-bold">
-                        {badgeCount}
-                      </Text>
+                    <View className="bg-red-500 px-2 py-1 rounded-full">
+                      <Text className="text-white text-xs font-bold">{badgeCount}</Text>
                     </View>
                   )}
                 </View>
-                <Text className="font-extrabold text-sm w-full text-center">
-                  {option.name}
-                </Text>
-              </Pressable>
+                <Text className="font-extrabold text-base">{option.name}</Text>
+                <Text className="text-gray-500 text-xs mt-1">{option.description}</Text>
+              </TouchableOpacity>
             );
           })}
-
-          {/* Espaciadores para mantener el grid alineado */}
-          {MENU_OPTIONS.length % 3 !== 0 &&
-            Array(3 - (MENU_OPTIONS.length % 3))
-              .fill(null)
-              .map((_, idx) => (
-                <View key={`empty-${idx}`} className="h-24 w-24" />
-              ))}
         </View>
+
+        {/* Última opción centrada (Mi asesoría) */}
+        {MENU_OPTIONS.length > 4 && (
+          <TouchableOpacity
+            className="bg-white rounded-2xl p-4 flex-row items-center"
+            onPress={() => router.push(MENU_OPTIONS[4].route)}
+            activeOpacity={0.7}
+            style={{
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+              elevation: 2,
+            }}
+          >
+            <Text className="text-4xl mr-4">{MENU_OPTIONS[4].icon}</Text>
+            <View className="flex-1">
+              <Text className="font-extrabold text-base">{MENU_OPTIONS[4].name}</Text>
+              <Text className="text-gray-500 text-xs">{MENU_OPTIONS[4].description}</Text>
+            </View>
+            <Text className="text-gray-400 text-xl">›</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </ScrollView>
   );

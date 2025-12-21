@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import React from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
+import { View, Text, Image, TouchableOpacity } from "react-native";
 import EstadoColor from "./EstadoColor";
 
 const SolicitudCard = ({ solicitud }) => {
@@ -11,71 +11,63 @@ const SolicitudCard = ({ solicitud }) => {
       onPress={() =>
         router.push(`/(app)/tabs/mis-solicitudes/solicitud?id=${solicitud.id}`)
       }
+      activeOpacity={0.7}
     >
-      <View className="bg-white p-5 mb-5 rounded-lg flex flex-column">
-        <View className="flex flex-row justify-start gap-5 items-center">
-          <View>
-            <Image
-              source={
-                solicitud.category_img_uri
-                  ? { uri: `${solicitud.category_img_uri}` }
-                  : ""
-              }
-              className="h-10 w-10 object-contain"
-            />
+      <View className="bg-white p-4 mb-4 rounded-2xl">
+        {/* Header con imagen y título */}
+        <View className="flex-row items-center gap-4 mb-3">
+          <View className="h-12 w-12 rounded-full bg-background items-center justify-center overflow-hidden">
+            {solicitud.category_img_uri ? (
+              <Image
+                source={{ uri: solicitud.category_img_uri }}
+                className="h-8 w-8"
+                resizeMode="contain"
+              />
+            ) : (
+              <Text className="text-xl">📋</Text>
+            )}
           </View>
-          <View>
-            <Text className="font-extrabold text-lg">
-              {solicitud.category_name || "Título de la solicitud"}
+          <View className="flex-1">
+            <Text className="font-extrabold text-base" numberOfLines={1}>
+              {solicitud.category_name || "Solicitud"}
             </Text>
-            <Text>
-              {solicitud.request_info || "Descripción de la solicitud"}
+            <Text className="text-gray-500 text-sm" numberOfLines={1}>
+              {solicitud.request_info || "Sin descripción"}
             </Text>
           </View>
         </View>
 
-        <View
-          style={{
-            borderBottomWidth: 1,
-            borderBottomColor: "#30D4D1",
-            marginTop: 10,
-            marginBottom: 15,
-          }}
-        />
+        {/* Separador */}
+        <View className="h-px bg-bright mb-3" />
 
-        <View className="flex flex-row justify-between">
-          <View
-            className=""
-            style={{
-              flex: 2,
-              flexDirection: "column",
-              justifyContent: "space-between",
-              paddingBottom: 4,
-            }}
-          >
-            <Text>Solicitud</Text>
-            <Text>{solicitud.created_at_display}</Text>
+        {/* Info row */}
+        <View className="flex-row items-center">
+          <View className="flex-1">
+            <Text className="text-gray-400 text-xs">Solicitud</Text>
+            <Text className="text-sm">{solicitud.created_at_display}</Text>
           </View>
-          <View className="flex flex-column items-center" style={{ flex: 4 }}>
-            <Text>Estado</Text>
+          <View className="flex-1 items-center">
+            <Text className="text-gray-400 text-xs">Estado</Text>
             <EstadoColor status_id={solicitud.status_id}>
               {solicitud.status}
             </EstadoColor>
-            {/* <Text>{solicitud.status}</Text> */}
           </View>
-          <View
-            className=""
-            style={{
-              flex: 2,
-              flexDirection: "column",
-              justifyContent: "space-between",
-              paddingBottom: 4,
-            }}
-          >
-            <Text className="">Actualizado</Text>
-            <Text className="">{solicitud.updated_at_display}</Text>
+          <View className="flex-1 items-end">
+            <Text className="text-gray-400 text-xs">Actualizado</Text>
+            <Text className="text-sm">{solicitud.updated_at_display}</Text>
           </View>
         </View>
+
+        {/* Badge de incidencia si existe */}
+        {solicitud.has_incident && (
+          <View className="mt-3 pt-3 border-t border-gray-100 flex-row items-center">
+            <View className="bg-yellow-100 px-3 py-1 rounded-full flex-row items-center">
+              <Text className="text-yellow-600 text-xs font-bold">
+                ⚠️ Incidencia abierta
+              </Text>
+            </View>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
