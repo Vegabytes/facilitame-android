@@ -20,6 +20,7 @@ import {
   PROVINCES,
   VALIDATION_REGEX,
   ERROR_MESSAGES,
+  validateNifNieCif,
 } from "../../utils/constants";
 
 export default function FormEmpresaScreen() {
@@ -67,7 +68,10 @@ export default function FormEmpresaScreen() {
     }
 
     if (!formData.nif_cif.trim()) {
-      newErrors.nif_cif = "El NIF/CIF es obligatorio";
+      newErrors.nif_cif = ERROR_MESSAGES.validation.required;
+      isValid = false;
+    } else if (!validateNifNieCif(formData.nif_cif.trim())) {
+      newErrors.nif_cif = ERROR_MESSAGES.validation.nifNieCif;
       isValid = false;
     }
 
@@ -145,7 +149,8 @@ export default function FormEmpresaScreen() {
       if (response.status === "ok") {
         router.replace("/(auth)/ok");
       } else {
-        setErrorMessage(response.message_html || "Error en el registro");
+        // Usar message_plain para evitar XSS
+        setErrorMessage(response.message_plain || "Error en el registro");
       }
     } catch (error) {
       console.error("Error en registro:", error);

@@ -157,7 +157,8 @@ export default function FormParticularScreen() {
       if (response.status === "ok") {
         router.replace("/(auth)/ok");
       } else {
-        setErrorMessage(response.message_html || "Error en el registro");
+        // Usar message_plain para evitar XSS
+        setErrorMessage(response.message_plain || "Error en el registro");
       }
     } catch (error) {
       console.error("Error en registro:", error);
