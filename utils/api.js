@@ -31,35 +31,48 @@ export async function fetchWithAuth(endpoint, body = null, options = {}) {
 
     const headers = {
       ...options.headers,
-      Authorization: `Bearer ${token}`,
+      "X-Origin": "app",
+      "Content-Type": "application/x-www-form-urlencoded",
     };
 
-    // Si es FormData, dejamos que fetch establezca el Content-Type
-    // En caso contrario, usamos URLSearchParams
+    // Preparar el body con el token de autenticación
+    let bodyData = { auth_token: token };
+
+    // Si es FormData, manejarlo diferente
     if (body instanceof FormData) {
+      body.append("auth_token", token);
       delete headers["Content-Type"];
     } else if (body) {
-      headers["Content-Type"] = "application/x-www-form-urlencoded";
+      bodyData = { ...bodyData, ...body };
     }
 
     const fetchOptions = {
       method: "POST",
       headers,
+      redirect: "follow",
       ...options,
     };
 
     // Preparar el body según el tipo
-    if (body) {
-      fetchOptions.body =
-        body instanceof FormData ? body : new URLSearchParams(body).toString();
+    if (body instanceof FormData) {
+      fetchOptions.body = body;
+    } else {
+      fetchOptions.body = new URLSearchParams(bodyData).toString();
     }
 
+    console.log(`[DEBUG] Fetching: ${API_URL}/${endpoint}`);
+    console.log(`[DEBUG] Token: ${token ? token.substring(0, 20) + '...' : 'NO TOKEN'}`);
+
     const response = await fetch(`${API_URL}/${endpoint}`, fetchOptions);
+
+    // Debug: ver respuesta raw
+    const responseText = await response.text();
+    console.log(`[DEBUG] ${endpoint} - Status: ${response.status}, Response: ${responseText.substring(0, 200)}`);
 
     // Intentar parsear JSON
     let jsonResponse;
     try {
-      jsonResponse = await response.json();
+      jsonResponse = JSON.parse(responseText);
     } catch (parseError) {
       console.error("Error parseando respuesta:", parseError);
       throw new Error(ERROR_MESSAGES.server);

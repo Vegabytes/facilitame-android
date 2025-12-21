@@ -58,6 +58,7 @@ export async function registerForPushNotificationsAsync() {
     try {
       await fetchWithAuth("app-token-save-fcm", {
         push_token: token,
+        platform: Platform.OS,
       });
     } catch (error) {
       // Silenciar error de envío de token

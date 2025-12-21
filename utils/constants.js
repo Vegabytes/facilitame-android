@@ -4,9 +4,9 @@
  */
 
 // API Configuration
-// Producción: https://app.facilitame.es/api
+// Producción: https://demo.facilitame.es/api
 // Local: http://facilitame.test/api
-export const API_URL = "http://facilitame.test/api";
+export const API_URL = "https://demo.facilitame.es/api";
 
 // Provincias de España (ordenadas alfabéticamente)
 export const PROVINCES = [
