@@ -1,3 +1,7 @@
+/**
+ * Pantalla de recuperación de contraseña
+ */
+
 import React, { useState } from "react";
 import {
   SafeAreaView,
@@ -6,73 +10,53 @@ import {
   Text,
   StatusBar,
   Platform,
-  TextInput,
-  ActivityIndicator,
-  TouchableOpacity,
 } from "react-native";
-import { Picker } from "@react-native-picker/picker";
-import Checkbox from "expo-checkbox";
 import { useRouter } from "expo-router";
-import { useAuth } from "../../context/AuthContext";
+import { fetchPublic } from "../../utils/api";
+import { Button, Input } from "../../components/ui";
+import { VALIDATION_REGEX, ERROR_MESSAGES } from "../../utils/constants";
 
 export default function PasswordRecoveryScreen() {
   const [email, setEmail] = useState("");
   const [errors, setErrors] = useState({});
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
   const router = useRouter();
 
-  const handlePasswordRecovery = async () => {
-    let valid = true;
+  const validateForm = () => {
     const newErrors = {};
 
     if (!email.trim()) {
-      newErrors.email = "El email es obligatorio";
-      valid = false;
-    } else if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email.trim())) {
-      newErrors.email = "El email no es válido";
-      valid = false;
+      newErrors.email = ERROR_MESSAGES.validation.required;
+    } else if (!VALIDATION_REGEX.email.test(email.trim())) {
+      newErrors.email = ERROR_MESSAGES.validation.email;
     }
+
     setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-    if (!valid) {
-      return;
-    }
+  const handlePasswordRecovery = async () => {
+    if (!validateForm()) return;
 
+    setIsLoading(true);
     setErrorMessage("");
 
     try {
-      const payload = {
-        email,
-      };
-
-      const formBody = Object.keys(payload)
-        .map(
-          (key) =>
-            `${encodeURIComponent(key)}=${encodeURIComponent(payload[key])}`,
-        )
-        .join("&");
-
-      const response = await fetch("https://app.facilitame.es/api/recovery", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: formBody,
+      const response = await fetchPublic("recovery", {
+        email: email.trim(),
       });
 
-      const json = await response.json();
-
-      if (json.status === "ok") {
+      if (response.status === "ok") {
         router.replace("/(auth)/ok-recovery");
       } else {
+        // Usar message_plain para evitar XSS
         setErrorMessage(
-          json.message_html || "Error en la recuperación de contraseña",
+          response.message_plain || "Error en la recuperación de contraseña"
         );
       }
     } catch (error) {
-      setErrorMessage("Error en la recuperación de contraseña");
+      setErrorMessage(ERROR_MESSAGES.network);
     } finally {
       setIsLoading(false);
     }
@@ -80,8 +64,8 @@ export default function PasswordRecoveryScreen() {
 
   return (
     <SafeAreaView
+      className="flex-1"
       style={{
-        flex: 1,
         paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
       }}
     >
@@ -92,50 +76,42 @@ export default function PasswordRecoveryScreen() {
           justifyContent: "center",
           alignItems: "center",
         }}
+        keyboardShouldPersistTaps="handled"
       >
-        <Text
-          className="text-button font-black text-center mb-5"
-          style={{ fontSize: 20 }}
-        >
+        <Text className="text-button font-black text-center mb-5 text-xl">
           No te preocupes.
         </Text>
-        <Text
-          className="text-button text-center mb-10"
-          style={{ fontSize: 18, fontWeight: 600 }}
-        >
+        <Text className="text-button text-center mb-10 text-lg font-semibold">
           Escribe el correo electrónico que usaste en el registro y te
           ayudaremos
         </Text>
 
-        <TextInput
+        <Input
           placeholder="Email"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(text) => {
+            setEmail(text);
+            if (errors.email) setErrors({});
+          }}
           autoCapitalize="none"
           keyboardType="email-address"
-          className="w-full h-14 px-5 mb-10 bg-white rounded-2xl border-bright border-2"
+          error={errors.email}
         />
-        {errors.email && <Text style={{ color: "red" }}>{errors.email}</Text>}
 
-        {errorMessage !== "" && (
-          <Text style={{ color: "red", marginBottom: 20, fontWeight: 800 }}>
+        {errorMessage ? (
+          <Text className="text-center my-4 text-white font-bold bg-red-500/30 p-3 rounded-lg w-full">
             {errorMessage}
           </Text>
-        )}
+        ) : null}
 
-        <TouchableOpacity
-          className="h-16 bg-button w-full rounded-full mb-2 flex flex-row items-center justify-center"
+        <Button
           onPress={handlePasswordRecovery}
+          loading={isLoading}
           disabled={isLoading}
+          className="mt-6"
         >
-          {isLoading ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text className="text-white text-center text-lg">
-              Recuperar contraseña
-            </Text>
-          )}
-        </TouchableOpacity>
+          Recuperar contraseña
+        </Button>
       </ScrollView>
     </SafeAreaView>
   );
