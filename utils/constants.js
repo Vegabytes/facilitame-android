@@ -174,3 +174,17 @@ export const getDocumentTypeLabel = (typeId) => {
   const type = DOCUMENT_TYPES.find((t) => t.id === typeId);
   return type ? type.label : "";
 };
+
+// Helper para eliminar tags HTML de un string
+export const stripHtml = (html) => {
+  if (!html) return "";
+  return html
+    .replace(/<[^>]*>/g, "") // Elimina tags HTML
+    .replace(/&nbsp;/g, " ") // Reemplaza &nbsp;
+    .replace(/&amp;/g, "&") // Reemplaza &amp;
+    .replace(/&lt;/g, "<") // Reemplaza &lt;
+    .replace(/&gt;/g, ">") // Reemplaza &gt;
+    .replace(/&quot;/g, '"') // Reemplaza &quot;
+    .replace(/&#39;/g, "'") // Reemplaza &#39;
+    .trim();
+};
