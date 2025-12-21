@@ -60,14 +60,14 @@ export async function fetchWithAuth(endpoint, body = null, options = {}) {
       fetchOptions.body = new URLSearchParams(bodyData).toString();
     }
 
-    console.log(`[DEBUG] Fetching: ${API_URL}/${endpoint}`);
-    console.log(`[DEBUG] Token: ${token ? token.substring(0, 20) + '...' : 'NO TOKEN'}`);
+    // Solo loguear en desarrollo (nunca tokens en producción)
+    if (__DEV__) {
+      console.log(`[API] ${endpoint}`);
+    }
 
     const response = await fetch(`${API_URL}/${endpoint}`, fetchOptions);
 
-    // Debug: ver respuesta raw
     const responseText = await response.text();
-    console.log(`[DEBUG] ${endpoint} - Status: ${response.status}, Response: ${responseText.substring(0, 200)}`);
 
     // Intentar parsear JSON
     let jsonResponse;

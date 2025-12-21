@@ -87,10 +87,50 @@ export const MIME_TYPES = {
 
 // Regex de validación
 export const VALIDATION_REGEX = {
-  email: /^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/,
-  phone: /^\d+$/,
-  password: /^(?=.*[A-Za-z])(?=.*\d).{8,}$/,
-  passwordStrong: /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]{8,}$/,
+  // Email: formato estándar con TLD de 2-6 caracteres
+  email: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/,
+  // Teléfono español: 9 dígitos, opcionalmente con prefijo +34
+  phone: /^(\+34)?[6-9]\d{8}$/,
+  // Contraseña: mínimo 8 caracteres, al menos 1 mayúscula, 1 minúscula y 1 número
+  password: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/,
+  // Contraseña fuerte: incluye caracteres especiales
+  passwordStrong: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{10,}$/,
+  // NIF español: 8 números + 1 letra
+  nif: /^[0-9]{8}[A-Za-z]$/,
+  // CIF español: letra + 7 números + letra/número
+  cif: /^[A-Za-z][0-9]{7}[A-Za-z0-9]$/,
+  // NIE español: X/Y/Z + 7 números + letra
+  nie: /^[XYZxyz][0-9]{7}[A-Za-z]$/,
+};
+
+// Validación completa de NIF/NIE/CIF con letra de control
+export const validateNifNieCif = (value) => {
+  if (!value) return false;
+  const cleanValue = value.toUpperCase().trim();
+
+  // Validar NIF
+  if (VALIDATION_REGEX.nif.test(cleanValue)) {
+    const letters = "TRWAGMYFPDXBNJZSQVHLCKE";
+    const number = parseInt(cleanValue.slice(0, 8), 10);
+    const expectedLetter = letters[number % 23];
+    return cleanValue[8] === expectedLetter;
+  }
+
+  // Validar NIE
+  if (VALIDATION_REGEX.nie.test(cleanValue)) {
+    const letters = "TRWAGMYFPDXBNJZSQVHLCKE";
+    const niePrefix = { X: "0", Y: "1", Z: "2" };
+    const number = parseInt(niePrefix[cleanValue[0]] + cleanValue.slice(1, 8), 10);
+    const expectedLetter = letters[number % 23];
+    return cleanValue[8] === expectedLetter;
+  }
+
+  // Validar CIF (formato básico, sin validación de letra control completa)
+  if (VALIDATION_REGEX.cif.test(cleanValue)) {
+    return true;
+  }
+
+  return false;
 };
 
 // Colores del tema (para uso programático)
@@ -115,10 +155,11 @@ export const ERROR_MESSAGES = {
   validation: {
     required: "Este campo es obligatorio",
     email: "El email no es válido",
-    phone: "El teléfono debe contener solo números",
-    password: "La contraseña debe tener al menos 8 caracteres y contener letras y números",
+    phone: "Introduce un teléfono español válido (9 dígitos)",
+    password: "Mínimo 8 caracteres con mayúscula, minúscula y número",
     passwordMatch: "Las contraseñas no coinciden",
     privacyRequired: "Debes aceptar la política de privacidad",
+    nifNieCif: "NIF/NIE/CIF no válido. Verifica el formato y la letra",
   },
 };
 

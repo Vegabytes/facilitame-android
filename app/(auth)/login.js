@@ -85,9 +85,27 @@ export default function LoginScreen() {
 
   /**
    * Maneja el login como invitado
+   * Usa endpoint dedicado para obtener token de invitado (sin credenciales en código)
    */
   const handleGuestLogin = async () => {
-    await performLogin("guest@facilitame.es", "guest_access_2024", true);
+    setIsGuestLoading(true);
+    setErrorMessage("");
+
+    try {
+      const response = await fetchPublic("guest-login", {
+        device: "mobile",
+      });
+
+      if (response.status === "ok" && response.auth_token) {
+        await login(response.auth_token);
+      } else {
+        setErrorMessage(response.message_plain || "Error al acceder como invitado");
+      }
+    } catch (error) {
+      setErrorMessage("Error de conexión. Inténtalo de nuevo.");
+    } finally {
+      setIsGuestLoading(false);
+    }
   };
 
   return (
