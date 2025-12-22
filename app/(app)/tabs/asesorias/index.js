@@ -17,6 +17,7 @@ import { fetchWithAuth } from "../../../../utils/api";
 
 // Opciones del menú de asesoría
 const MENU_OPTIONS = [
+  { id: "tu-asesor", name: "Tu Asesor", icon: "👤", description: "Chat directo con tu asesor", route: "/tabs/asesorias/tu-asesor", statKey: "general_chat_unread" },
   { id: "facturas", name: "Facturas", icon: "📄", description: "Ver facturas emitidas", route: "/tabs/asesorias/facturas" },
   { id: "citas", name: "Citas", icon: "📅", description: "Gestionar tus citas", route: "/tabs/asesorias/citas", statKey: "appointments_needs_confirmation" },
   { id: "comunicados", name: "Comunicados", icon: "💬", description: "Mensajes de tu asesoría", route: "/tabs/asesorias/comunicaciones", statKey: "communications_unread" },
@@ -32,6 +33,7 @@ export default function AsesoriasScreen() {
   const [advisory, setAdvisory] = useState(null);
   const [stats, setStats] = useState(null);
   const [nextAppointment, setNextAppointment] = useState(null);
+  const [canSendInvoices, setCanSendInvoices] = useState(false);
 
   const loadAdvisoryData = useCallback(async () => {
     try {
@@ -50,6 +52,7 @@ export default function AsesoriasScreen() {
         setAdvisory(response.data?.advisory || null);
         setStats(response.data?.stats || null);
         setNextAppointment(response.data?.next_appointment || null);
+        setCanSendInvoices(response.data?.can_send_invoices || false);
       } else if (__DEV__) {
         console.log("[Asesorias] Response status not ok:", response?.status);
       }
@@ -213,11 +216,12 @@ export default function AsesoriasScreen() {
           })}
         </View>
 
-        {/* Última opción centrada (Mi asesoría) */}
-        {MENU_OPTIONS.length > 4 && (
+        {/* Opciones adicionales como filas */}
+        {MENU_OPTIONS.slice(4).map((option) => (
           <TouchableOpacity
-            className="bg-white rounded-2xl p-4 flex-row items-center"
-            onPress={() => router.push(MENU_OPTIONS[4].route)}
+            key={option.id}
+            className="bg-white rounded-2xl p-4 flex-row items-center mb-3"
+            onPress={() => router.push(option.route)}
             activeOpacity={0.7}
             style={{
               shadowColor: "#000",
@@ -227,12 +231,31 @@ export default function AsesoriasScreen() {
               elevation: 2,
             }}
           >
-            <Text className="text-4xl mr-4">{MENU_OPTIONS[4].icon}</Text>
+            <Text className="text-4xl mr-4">{option.icon}</Text>
             <View className="flex-1">
-              <Text className="font-extrabold text-base">{MENU_OPTIONS[4].name}</Text>
-              <Text className="text-gray-500 text-xs">{MENU_OPTIONS[4].description}</Text>
+              <Text className="font-extrabold text-base">{option.name}</Text>
+              <Text className="text-gray-500 text-xs">{option.description}</Text>
             </View>
             <Text className="text-gray-400 text-xl">›</Text>
+          </TouchableOpacity>
+        ))}
+
+        {/* Botón grande Enviar Factura */}
+        {canSendInvoices && (
+          <TouchableOpacity
+            className="bg-primary rounded-2xl p-5 mt-6 flex-row items-center justify-center"
+            onPress={() => router.push("/tabs/asesorias/facturas")}
+            activeOpacity={0.7}
+            style={{
+              shadowColor: "#30D4D1",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 12,
+              elevation: 6,
+            }}
+          >
+            <Text className="text-3xl mr-3">📤</Text>
+            <Text className="text-white font-extrabold text-lg">Enviar Factura</Text>
           </TouchableOpacity>
         )}
       </View>

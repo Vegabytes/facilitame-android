@@ -13,7 +13,9 @@ import {
   Modal,
   ScrollView,
   Linking,
+  Platform,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter, useFocusEffect } from "expo-router";
 import { fetchWithAuth } from "../../../../utils/api";
 import { stripHtml } from "../../../../utils/constants";
@@ -48,14 +50,24 @@ export default function ComunicacionesScreen() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [selectedComm, setSelectedComm] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  // Filtro de fechas
+  const [dateFrom, setDateFrom] = useState(null);
+  const [dateTo, setDateTo] = useState(null);
+  const [showDatePicker, setShowDatePicker] = useState(null); // 'from' | 'to' | null
+  const [showDateFilters, setShowDateFilters] = useState(false);
 
   const loadCommunications = useCallback(async () => {
     try {
-      const response = await fetchWithAuth(
-        "app-communications",
-        { limit: 50, filter },
-        { silent: true },
-      );
+      const params = { limit: 50, filter };
+      if (dateFrom) {
+        params.date_from = dateFrom.toISOString().split("T")[0];
+      }
+      if (dateTo) {
+        params.date_to = dateTo.toISOString().split("T")[0];
+      }
+      const response = await fetchWithAuth("app-communications", params, {
+        silent: true,
+      });
       if (response?.status === "ok") {
         setCommunications(response.data?.communications || []);
         setUnreadCount(response.data?.unread_count || 0);
@@ -66,7 +78,7 @@ export default function ComunicacionesScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [filter]);
+  }, [filter, dateFrom, dateTo]);
 
   useFocusEffect(
     useCallback(() => {
@@ -283,7 +295,105 @@ export default function ComunicacionesScreen() {
               </View>
             )}
           </TouchableOpacity>
+          {/* Botón filtro fechas */}
+          <TouchableOpacity
+            className={`px-4 py-2 rounded-full ${
+              showDateFilters || dateFrom || dateTo ? "bg-primary" : "bg-white"
+            }`}
+            onPress={() => setShowDateFilters(!showDateFilters)}
+            accessibilityLabel="Filtrar por fechas"
+            accessibilityRole="button"
+          >
+            <Text
+              className={`font-medium ${
+                showDateFilters || dateFrom || dateTo
+                  ? "text-white"
+                  : "text-gray-600"
+              }`}
+            >
+              📅 Fechas
+            </Text>
+          </TouchableOpacity>
         </View>
+
+        {/* Filtros de fecha expandibles */}
+        {showDateFilters && (
+          <View className="bg-white rounded-xl p-4 mb-4">
+            <View className="flex-row gap-3">
+              {/* Desde */}
+              <View className="flex-1">
+                <Text className="text-gray-500 text-xs mb-1">Desde</Text>
+                <TouchableOpacity
+                  className="bg-gray-100 p-3 rounded-lg"
+                  onPress={() => setShowDatePicker("from")}
+                >
+                  <Text className={dateFrom ? "text-gray-900" : "text-gray-400"}>
+                    {dateFrom
+                      ? dateFrom.toLocaleDateString("es-ES")
+                      : "Seleccionar"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {/* Hasta */}
+              <View className="flex-1">
+                <Text className="text-gray-500 text-xs mb-1">Hasta</Text>
+                <TouchableOpacity
+                  className="bg-gray-100 p-3 rounded-lg"
+                  onPress={() => setShowDatePicker("to")}
+                >
+                  <Text className={dateTo ? "text-gray-900" : "text-gray-400"}>
+                    {dateTo
+                      ? dateTo.toLocaleDateString("es-ES")
+                      : "Seleccionar"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            {/* Limpiar filtros */}
+            {(dateFrom || dateTo) && (
+              <TouchableOpacity
+                className="mt-3"
+                onPress={() => {
+                  setDateFrom(null);
+                  setDateTo(null);
+                }}
+              >
+                <Text className="text-primary text-center font-medium">
+                  Limpiar filtros de fecha
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* DateTimePicker */}
+        {showDatePicker && (
+          <DateTimePicker
+            value={
+              showDatePicker === "from"
+                ? dateFrom || new Date()
+                : dateTo || new Date()
+            }
+            mode="date"
+            display={Platform.OS === "ios" ? "spinner" : "default"}
+            onChange={(event, selectedDate) => {
+              if (Platform.OS === "android") {
+                setShowDatePicker(null);
+              }
+              if (event.type === "set" && selectedDate) {
+                if (showDatePicker === "from") {
+                  setDateFrom(selectedDate);
+                } else {
+                  setDateTo(selectedDate);
+                }
+              }
+              if (Platform.OS === "ios") {
+                setShowDatePicker(null);
+              }
+            }}
+            maximumDate={new Date()}
+          />
+        )}
       </View>
 
       {/* Lista */}

@@ -115,19 +115,38 @@ export default function NotificacionesScreen() {
           <TouchableOpacity
             onPress={async () => {
               try {
-                await fetchWithAuth("app-notification-mark-read", {
-                  notification_id: item.id,
-                });
+                // Marcar como leída según el tipo
+                if (item.type === "communication") {
+                  await fetchWithAuth("app-communication-mark-read", {
+                    communication_id: item.communication_id,
+                  });
+                } else {
+                  await fetchWithAuth("app-notification-mark-read", {
+                    notification_id: item.id,
+                  });
+                }
               } catch (err) {
                 console.error(
                   "Error marcando la notificación como leída:",
                   err,
                 );
-              } finally {
+              }
+
+              // Navegar según el tipo de notificación
+              if (item.type === "communication") {
+                router.push("/(app)/tabs/asesorias/comunicaciones");
+              } else if (item.type === "appointment" && item.appointment_id) {
+                router.push(`/(app)/tabs/asesorias/cita/${item.appointment_id}`);
+              } else if (item.type === "general_chat") {
+                router.push("/(app)/tabs/asesorias/tu-asesor");
+              } else if (item.type === "invoice") {
+                router.push("/(app)/tabs/asesorias/facturas");
+              } else if (item.request_id) {
                 router.push(
                   `/(app)/tabs/mis-solicitudes/solicitud?id=${item.request_id}`,
                 );
               }
+              // Si no hay tipo reconocido, no navegar
             }}
           >
             <View className={`mb-3 bg-white rounded-xl px-5 py-4`}>

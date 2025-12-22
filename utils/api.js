@@ -92,6 +92,15 @@ export async function fetchWithAuth(endpoint, body = null, options = {}) {
       return { status: "guest", message: jsonResponse.message_html };
     }
 
+    // Manejar errores de autenticación (token inválido/expirado)
+    if (jsonResponse.status === "ko" && jsonResponse.code === 4031010) {
+      // Error de autenticación - hacer logout silencioso
+      if (globalLogout) {
+        globalLogout();
+      }
+      return null;
+    }
+
     // Manejar errores de la API
     if (jsonResponse.status !== "ok") {
       const errorMessage = jsonResponse.message_html || jsonResponse.message_plain || ERROR_MESSAGES.server;

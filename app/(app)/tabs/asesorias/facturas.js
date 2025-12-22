@@ -13,6 +13,7 @@ import {
   Modal,
   Alert,
   Linking,
+  TextInput,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import * as DocumentPicker from "expo-document-picker";
@@ -43,6 +44,7 @@ export default function FacturasScreen() {
   const [selectedType, setSelectedType] = useState("gasto");
   const [selectedTag, setSelectedTag] = useState("");
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [customNames, setCustomNames] = useState({});
 
   const loadInvoices = useCallback(async () => {
     try {
@@ -149,6 +151,9 @@ export default function FacturasScreen() {
           name: file.name,
           type: file.mimeType || "application/octet-stream",
         });
+        // Añadir nombre personalizado si existe
+        const displayName = customNames[index] || file.name;
+        formData.append("custom_names[]", displayName);
       });
 
       formData.append("type", selectedType);
@@ -169,6 +174,7 @@ export default function FacturasScreen() {
         );
         setModalVisible(false);
         setSelectedFiles([]);
+        setCustomNames({});
         setSelectedType("gasto");
         setSelectedTag("");
         loadInvoices();
@@ -429,6 +435,7 @@ export default function FacturasScreen() {
               onPress={() => {
                 setModalVisible(false);
                 setSelectedFiles([]);
+                setCustomNames({});
               }}
               className="mr-3"
               accessibilityLabel="Cerrar"
@@ -466,23 +473,42 @@ export default function FacturasScreen() {
                 {selectedFiles.map((file, index) => (
                   <View
                     key={index}
-                    className="bg-white p-3 rounded-xl mb-2 flex-row items-center"
+                    className="bg-white p-3 rounded-xl mb-2"
                   >
-                    <Text className="text-xl mr-3">📄</Text>
-                    <Text className="flex-1" numberOfLines={1}>
-                      {file.name}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => {
-                        setSelectedFiles((prev) =>
-                          prev.filter((_, i) => i !== index),
-                        );
+                    <View className="flex-row items-center mb-2">
+                      <Text className="text-xl mr-3">📄</Text>
+                      <Text className="flex-1 text-gray-400 text-xs" numberOfLines={1}>
+                        {file.name}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setSelectedFiles((prev) =>
+                            prev.filter((_, i) => i !== index),
+                          );
+                          setCustomNames((prev) => {
+                            const newNames = { ...prev };
+                            delete newNames[index];
+                            return newNames;
+                          });
+                        }}
+                        accessibilityLabel="Eliminar archivo"
+                        accessibilityRole="button"
+                      >
+                        <Text className="text-red-500">✕</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <TextInput
+                      className="bg-gray-100 p-2 rounded-lg text-gray-800"
+                      placeholder="Nombre para mostrar"
+                      placeholderTextColor="#999"
+                      value={customNames[index] ?? file.name}
+                      onChangeText={(text) => {
+                        setCustomNames((prev) => ({
+                          ...prev,
+                          [index]: text,
+                        }));
                       }}
-                      accessibilityLabel="Eliminar archivo"
-                      accessibilityRole="button"
-                    >
-                      <Text className="text-red-500">✕</Text>
-                    </TouchableOpacity>
+                    />
                   </View>
                 ))}
               </View>
