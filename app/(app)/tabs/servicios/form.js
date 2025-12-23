@@ -12,6 +12,8 @@ import {
   TouchableOpacity,
   Image,
   Linking,
+  Modal,
+  ActionSheetIOS,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -246,19 +248,44 @@ export default function FormScreen() {
           )}
 
           <View className="mb-4 border-2 border-primary bg-white rounded-3xl ps-5">
-            <Picker
-              selectedValue={selectedDocType}
-              onValueChange={(value) => setSelectedDocType(value)}
-              style={{ width: "100%", color: "#333" }}
-              accessibilityLabel="document-type-picker"
-              testID="document-type-picker"
-            >
-              <Picker.Item label="Tipo de documento" value="0" />
-              <Picker.Item label="Póliza" value="1" />
-              <Picker.Item label="Factura" value="2" />
-              <Picker.Item label="Contrato" value="3" />
-              <Picker.Item label="Documento" value="99" />
-            </Picker>
+            {Platform.OS === "ios" ? (
+              <TouchableOpacity
+                onPress={() => {
+                  const options = ["Tipo de documento", "Póliza", "Factura", "Contrato", "Documento", "Cancelar"];
+                  const values = ["0", "1", "2", "3", "99"];
+                  ActionSheetIOS.showActionSheetWithOptions(
+                    { options, cancelButtonIndex: 5 },
+                    (buttonIndex) => {
+                      if (buttonIndex < 5) {
+                        setSelectedDocType(values[buttonIndex]);
+                      }
+                    }
+                  );
+                }}
+                style={{ paddingVertical: 16, paddingRight: 16 }}
+              >
+                <Text style={{ color: "#333" }}>
+                  {selectedDocType === "0" ? "Tipo de documento" :
+                   selectedDocType === "1" ? "Póliza" :
+                   selectedDocType === "2" ? "Factura" :
+                   selectedDocType === "3" ? "Contrato" : "Documento"}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <Picker
+                selectedValue={selectedDocType}
+                onValueChange={(value) => setSelectedDocType(value)}
+                style={{ width: "100%", color: "#333" }}
+                accessibilityLabel="document-type-picker"
+                testID="document-type-picker"
+              >
+                <Picker.Item label="Tipo de documento" value="0" />
+                <Picker.Item label="Póliza" value="1" />
+                <Picker.Item label="Factura" value="2" />
+                <Picker.Item label="Contrato" value="3" />
+                <Picker.Item label="Documento" value="99" />
+              </Picker>
+            )}
           </View>
 
           <View className="flex-row justify-between gap-3">
@@ -356,20 +383,17 @@ export default function FormScreen() {
           </View>
         )}
 
-        {showDatePicker && (
+        {/* DateTimePicker - Android */}
+        {showDatePicker && Platform.OS === "android" && (
           <DateTimePicker
             value={date}
             mode="date"
-            display={Platform.OS === "ios" ? "spinner" : "default"}
+            display="default"
             onChange={(event, selectedDate) => {
               setShowDatePicker(false);
               if (selectedDate) {
-                const formattedDateForServer = selectedDate
-                  .toISOString()
-                  .split("T")[0];
-                const formattedDateForDisplay =
-                  selectedDate.toLocaleDateString("es-ES");
-
+                const formattedDateForServer = selectedDate.toISOString().split("T")[0];
+                const formattedDateForDisplay = selectedDate.toLocaleDateString("es-ES");
                 setSelectedValues((prev) => ({
                   ...prev,
                   [currentDateField]: formattedDateForServer,
@@ -378,6 +402,49 @@ export default function FormScreen() {
               }
             }}
           />
+        )}
+        {/* DateTimePicker - iOS con Modal */}
+        {showDatePicker && Platform.OS === "ios" && (
+          <Modal transparent animationType="fade" visible={showDatePicker}>
+            <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" }}>
+              <View style={{ backgroundColor: "#fff", padding: 16, borderTopLeftRadius: 12, borderTopRightRadius: 12 }}>
+                <DateTimePicker
+                  value={date}
+                  mode="date"
+                  display="spinner"
+                  onChange={(event, selectedDate) => {
+                    if (selectedDate) {
+                      setDate(selectedDate);
+                    }
+                  }}
+                  textColor="#000"
+                />
+                <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10, marginBottom: 30 }}>
+                  <TouchableOpacity
+                    onPress={() => setShowDatePicker(false)}
+                    style={{ paddingHorizontal: 16, paddingVertical: 8 }}
+                  >
+                    <Text style={{ color: "#FF231F", fontSize: 16 }}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      const formattedDateForServer = date.toISOString().split("T")[0];
+                      const formattedDateForDisplay = date.toLocaleDateString("es-ES");
+                      setSelectedValues((prev) => ({
+                        ...prev,
+                        [currentDateField]: formattedDateForServer,
+                        [`${currentDateField}_display`]: formattedDateForDisplay,
+                      }));
+                      setShowDatePicker(false);
+                    }}
+                    style={{ paddingHorizontal: 16, paddingVertical: 8 }}
+                  >
+                    <Text style={{ color: "#30D4D1", fontSize: 16, fontWeight: "600" }}>Confirmar</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
         )}
 
         <TouchableOpacity

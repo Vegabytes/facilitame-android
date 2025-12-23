@@ -9,6 +9,7 @@ import {
   ScrollView,
   Platform,
   Linking,
+  ActionSheetIOS,
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
@@ -298,17 +299,42 @@ const SolicitudTabDocumentos = () => {
             overflow: "hidden",
           }}
         >
-          <Picker
-            selectedValue={selectedDocType}
-            onValueChange={(itemValue) => setSelectedDocType(itemValue)}
-            style={{ height: 50 }}
-          >
-            <Picker.Item label="Tipo de documento" value="0" />
-            <Picker.Item label="Póliza" value="1" />
-            <Picker.Item label="Factura" value="2" />
-            <Picker.Item label="Contrato" value="3" />
-            <Picker.Item label="Documento" value="99" />
-          </Picker>
+          {Platform.OS === "ios" ? (
+            <TouchableOpacity
+              onPress={() => {
+                const options = ["Tipo de documento", "Póliza", "Factura", "Contrato", "Documento", "Cancelar"];
+                const values = ["0", "1", "2", "3", "99"];
+                ActionSheetIOS.showActionSheetWithOptions(
+                  { options, cancelButtonIndex: 5 },
+                  (buttonIndex) => {
+                    if (buttonIndex < 5) {
+                      setSelectedDocType(values[buttonIndex]);
+                    }
+                  }
+                );
+              }}
+              style={{ height: 50, justifyContent: "center", paddingHorizontal: 10 }}
+            >
+              <Text style={{ color: "#333" }}>
+                {selectedDocType === "0" ? "Tipo de documento" :
+                 selectedDocType === "1" ? "Póliza" :
+                 selectedDocType === "2" ? "Factura" :
+                 selectedDocType === "3" ? "Contrato" : "Documento"}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <Picker
+              selectedValue={selectedDocType}
+              onValueChange={(itemValue) => setSelectedDocType(itemValue)}
+              style={{ height: 50 }}
+            >
+              <Picker.Item label="Tipo de documento" value="0" />
+              <Picker.Item label="Póliza" value="1" />
+              <Picker.Item label="Factura" value="2" />
+              <Picker.Item label="Contrato" value="3" />
+              <Picker.Item label="Documento" value="99" />
+            </Picker>
+          )}
         </View>
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <TouchableOpacity

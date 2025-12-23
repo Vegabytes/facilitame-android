@@ -11,6 +11,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Modal,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -183,22 +184,60 @@ export default function NuevaCitaScreen() {
     return tomorrow;
   };
 
+  // Estado temporal para iOS
+  const [tempDate, setTempDate] = useState(null);
+  const [tempTime, setTempTime] = useState(null);
+
   // Handler para cambio de fecha
   const onDateChange = (event, date) => {
-    setShowDatePicker(Platform.OS === "ios");
-    if (date) {
-      setSelectedDate(date);
-      setErrors((e) => ({ ...e, date: null }));
+    if (Platform.OS === "android") {
+      setShowDatePicker(false);
+      if (date) {
+        setSelectedDate(date);
+        setErrors((e) => ({ ...e, date: null }));
+      }
+    } else {
+      // iOS - guardar temporalmente
+      if (date) {
+        setTempDate(date);
+      }
     }
   };
 
   // Handler para cambio de hora
   const onTimeChange = (event, time) => {
-    setShowTimePicker(Platform.OS === "ios");
-    if (time) {
-      setSelectedTime(time);
+    if (Platform.OS === "android") {
+      setShowTimePicker(false);
+      if (time) {
+        setSelectedTime(time);
+        setErrors((e) => ({ ...e, time: null }));
+      }
+    } else {
+      // iOS - guardar temporalmente
+      if (time) {
+        setTempTime(time);
+      }
+    }
+  };
+
+  // Confirmar fecha en iOS
+  const confirmDateIOS = () => {
+    if (tempDate) {
+      setSelectedDate(tempDate);
+      setErrors((e) => ({ ...e, date: null }));
+    }
+    setShowDatePicker(false);
+    setTempDate(null);
+  };
+
+  // Confirmar hora en iOS
+  const confirmTimeIOS = () => {
+    if (tempTime) {
+      setSelectedTime(tempTime);
       setErrors((e) => ({ ...e, time: null }));
     }
+    setShowTimePicker(false);
+    setTempTime(null);
   };
 
   return (
@@ -346,27 +385,92 @@ export default function NuevaCitaScreen() {
               </View>
             </View>
 
-            {/* DateTimePickers */}
-            {showDatePicker && (
+            {/* DateTimePickers - Android */}
+            {showDatePicker && Platform.OS === "android" && (
               <DateTimePicker
                 value={selectedDate || getMinDate()}
                 mode="date"
-                display={Platform.OS === "ios" ? "spinner" : "default"}
+                display="default"
                 minimumDate={getMinDate()}
                 onChange={onDateChange}
                 locale="es-ES"
               />
             )}
-
-            {showTimePicker && (
+            {showTimePicker && Platform.OS === "android" && (
               <DateTimePicker
                 value={selectedTime || new Date()}
                 mode="time"
-                display={Platform.OS === "ios" ? "spinner" : "default"}
+                display="default"
                 is24Hour={true}
                 onChange={onTimeChange}
                 locale="es-ES"
               />
+            )}
+
+            {/* DateTimePicker Fecha - iOS con Modal */}
+            {showDatePicker && Platform.OS === "ios" && (
+              <Modal transparent animationType="fade" visible={showDatePicker}>
+                <View className="flex-1 justify-end bg-black/40">
+                  <View className="bg-white p-4 rounded-t-xl">
+                    <DateTimePicker
+                      value={tempDate || selectedDate || getMinDate()}
+                      mode="date"
+                      display="spinner"
+                      minimumDate={getMinDate()}
+                      onChange={onDateChange}
+                      locale="es-ES"
+                      textColor="#000"
+                    />
+                    <View className="flex-row justify-between mt-2 mb-6">
+                      <TouchableOpacity
+                        onPress={() => { setShowDatePicker(false); setTempDate(null); }}
+                        className="px-4 py-2"
+                      >
+                        <Text className="text-red-500 text-base">Cancelar</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={confirmDateIOS}
+                        className="px-4 py-2"
+                      >
+                        <Text className="text-primary text-base font-semibold">Confirmar</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              </Modal>
+            )}
+
+            {/* DateTimePicker Hora - iOS con Modal */}
+            {showTimePicker && Platform.OS === "ios" && (
+              <Modal transparent animationType="fade" visible={showTimePicker}>
+                <View className="flex-1 justify-end bg-black/40">
+                  <View className="bg-white p-4 rounded-t-xl">
+                    <DateTimePicker
+                      value={tempTime || selectedTime || new Date()}
+                      mode="time"
+                      display="spinner"
+                      is24Hour={true}
+                      onChange={onTimeChange}
+                      locale="es-ES"
+                      textColor="#000"
+                    />
+                    <View className="flex-row justify-between mt-2 mb-6">
+                      <TouchableOpacity
+                        onPress={() => { setShowTimePicker(false); setTempTime(null); }}
+                        className="px-4 py-2"
+                      >
+                        <Text className="text-red-500 text-base">Cancelar</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={confirmTimeIOS}
+                        className="px-4 py-2"
+                      >
+                        <Text className="text-primary text-base font-semibold">Confirmar</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              </Modal>
             )}
 
             <View className="bg-blue-50 p-3 rounded-lg mt-3">

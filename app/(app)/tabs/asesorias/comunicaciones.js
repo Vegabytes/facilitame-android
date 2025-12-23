@@ -366,20 +366,14 @@ export default function ComunicacionesScreen() {
           </View>
         )}
 
-        {/* DateTimePicker */}
-        {showDatePicker && (
+        {/* DateTimePicker - Android */}
+        {showDatePicker && Platform.OS === "android" && (
           <DateTimePicker
-            value={
-              showDatePicker === "from"
-                ? dateFrom || new Date()
-                : dateTo || new Date()
-            }
+            value={showDatePicker === "from" ? dateFrom || new Date() : dateTo || new Date()}
             mode="date"
-            display={Platform.OS === "ios" ? "spinner" : "default"}
+            display="default"
             onChange={(event, selectedDate) => {
-              if (Platform.OS === "android") {
-                setShowDatePicker(null);
-              }
+              setShowDatePicker(null);
               if (event.type === "set" && selectedDate) {
                 if (showDatePicker === "from") {
                   setDateFrom(selectedDate);
@@ -387,12 +381,48 @@ export default function ComunicacionesScreen() {
                   setDateTo(selectedDate);
                 }
               }
-              if (Platform.OS === "ios") {
-                setShowDatePicker(null);
-              }
             }}
             maximumDate={new Date()}
           />
+        )}
+        {/* DateTimePicker - iOS con Modal */}
+        {showDatePicker && Platform.OS === "ios" && (
+          <Modal transparent animationType="fade" visible={!!showDatePicker}>
+            <View className="flex-1 justify-end bg-black/40">
+              <View className="bg-white p-4 rounded-t-xl">
+                <DateTimePicker
+                  value={showDatePicker === "from" ? dateFrom || new Date() : dateTo || new Date()}
+                  mode="date"
+                  display="spinner"
+                  onChange={(event, selectedDate) => {
+                    if (selectedDate) {
+                      if (showDatePicker === "from") {
+                        setDateFrom(selectedDate);
+                      } else {
+                        setDateTo(selectedDate);
+                      }
+                    }
+                  }}
+                  maximumDate={new Date()}
+                  textColor="#000"
+                />
+                <View className="flex-row justify-between mt-2 mb-6">
+                  <TouchableOpacity
+                    onPress={() => setShowDatePicker(null)}
+                    className="px-4 py-2"
+                  >
+                    <Text className="text-red-500 text-base">Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setShowDatePicker(null)}
+                    className="px-4 py-2"
+                  >
+                    <Text className="text-primary text-base font-semibold">Confirmar</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
         )}
       </View>
 

@@ -2,7 +2,7 @@
  * Pantalla de facturas enviadas a la asesoría
  */
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,9 +14,12 @@ import {
   Alert,
   Linking,
   TextInput,
+  ActionSheetIOS,
+  Platform,
 } from "react-native";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
 import { fetchWithAuth } from "../../../../utils/api";
 import { API_URL } from "../../../../utils/constants";
 import { getAuthToken } from "../../../../utils/storage";
@@ -33,14 +36,18 @@ const TAGS = {
 
 export default function FacturasScreen() {
   const router = useRouter();
+  const { autoUpload } = useLocalSearchParams();
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [autoUploadTriggered, setAutoUploadTriggered] = useState(false);
+  const [autoUploadLoading, setAutoUploadLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [canSend, setCanSend] = useState(false);
   const [stats, setStats] = useState(null);
   const [filter, setFilter] = useState("all");
   const [modalVisible, setModalVisible] = useState(false);
+  const [sourceModalVisible, setSourceModalVisible] = useState(false);
   const [selectedType, setSelectedType] = useState("gasto");
   const [selectedTag, setSelectedTag] = useState("");
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -75,6 +82,39 @@ export default function FacturasScreen() {
       loadInvoices();
     }, [loadInvoices]),
   );
+
+  // Auto-abrir picker si viene con autoUpload=true
+  useEffect(() => {
+    if (autoUpload === "true" && canSend && !loading && !autoUploadTriggered) {
+      setAutoUploadTriggered(true);
+      setAutoUploadLoading(true);
+      // Pequeño delay para que la UI esté lista
+      setTimeout(() => {
+        pickDocumentAuto();
+      }, 100);
+    }
+  }, [autoUpload, canSend, loading, autoUploadTriggered]);
+
+  // Picker específico para autoUpload (con loading)
+  const pickDocumentAuto = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/pdf", "image/jpeg", "image/png"],
+        multiple: true,
+        copyToCacheDirectory: true,
+      });
+
+      setAutoUploadLoading(false);
+
+      if (!result.canceled && result.assets) {
+        setSelectedFiles(result.assets);
+        setModalVisible(true);
+      }
+    } catch (_error) {
+      setAutoUploadLoading(false);
+      Alert.alert("Error", "No se pudieron seleccionar los archivos");
+    }
+  };
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -118,6 +158,82 @@ export default function FacturasScreen() {
     }
   };
 
+  const showSourcePicker = () => {
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ["Cancelar", "Tomar foto", "Elegir de galería", "Seleccionar documento"],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            pickFromCamera();
+          } else if (buttonIndex === 2) {
+            pickFromGallery();
+          } else if (buttonIndex === 3) {
+            pickDocument();
+          }
+        }
+      );
+    } else {
+      setSourceModalVisible(true);
+    }
+  };
+
+  const pickFromCamera = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permiso denegado", "Necesitamos acceso a la cámara para tomar fotos");
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ["images"],
+        quality: 0.8,
+        allowsEditing: false,
+      });
+
+      if (!result.canceled && result.assets) {
+        const newFiles = result.assets.map((asset) => ({
+          uri: asset.uri,
+          name: `Factura_${Date.now()}.jpg`,
+          mimeType: "image/jpeg",
+        }));
+        setSelectedFiles((prev) => [...prev, ...newFiles]);
+      }
+    } catch (_error) {
+      Alert.alert("Error", "No se pudo tomar la foto");
+    }
+  };
+
+  const pickFromGallery = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permiso denegado", "Necesitamos acceso a la galería para seleccionar fotos");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        quality: 0.8,
+        allowsMultipleSelection: true,
+      });
+
+      if (!result.canceled && result.assets) {
+        const newFiles = result.assets.map((asset, index) => ({
+          uri: asset.uri,
+          name: asset.fileName || `Imagen_${Date.now()}_${index}.jpg`,
+          mimeType: asset.mimeType || "image/jpeg",
+        }));
+        setSelectedFiles((prev) => [...prev, ...newFiles]);
+      }
+    } catch (_error) {
+      Alert.alert("Error", "No se pudieron seleccionar las imágenes");
+    }
+  };
+
   const pickDocument = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
@@ -127,7 +243,7 @@ export default function FacturasScreen() {
       });
 
       if (!result.canceled && result.assets) {
-        setSelectedFiles(result.assets);
+        setSelectedFiles((prev) => [...prev, ...result.assets]);
       }
     } catch (_error) {
       Alert.alert("Error", "No se pudieron seleccionar los archivos");
@@ -343,10 +459,13 @@ export default function FacturasScreen() {
     [stats, filter],
   );
 
-  if (loading) {
+  if (loading || autoUploadLoading) {
     return (
       <View className="flex-1 bg-background items-center justify-center">
         <ActivityIndicator size="large" color="#30D4D1" />
+        {autoUploadLoading && (
+          <Text className="text-gray-500 mt-4">Abriendo selector de archivos...</Text>
+        )}
       </View>
     );
   }
@@ -450,7 +569,7 @@ export default function FacturasScreen() {
             {/* Selector de archivos */}
             <TouchableOpacity
               className="border-2 border-dashed border-gray-300 rounded-xl p-6 items-center mb-5"
-              onPress={pickDocument}
+              onPress={showSourcePicker}
               accessibilityLabel="Seleccionar archivos"
               accessibilityRole="button"
             >
@@ -460,10 +579,10 @@ export default function FacturasScreen() {
               <Text className="font-semibold text-lg">
                 {selectedFiles.length > 0
                   ? `${selectedFiles.length} archivo(s) seleccionado(s)`
-                  : "Seleccionar archivos"}
+                  : "Añadir archivos"}
               </Text>
               <Text className="text-gray-500 text-center mt-1">
-                PDF, JPG o PNG (máx. 10MB)
+                Cámara, galería o documento
               </Text>
             </TouchableOpacity>
 
@@ -603,6 +722,75 @@ export default function FacturasScreen() {
             </TouchableOpacity>
           </View>
         </View>
+      </Modal>
+
+      {/* Modal selección de fuente (Android) */}
+      <Modal
+        visible={sourceModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSourceModalVisible(false)}
+      >
+        <TouchableOpacity
+          className="flex-1 bg-black/50 justify-end"
+          activeOpacity={1}
+          onPress={() => setSourceModalVisible(false)}
+        >
+          <View className="bg-white rounded-t-3xl p-5 pb-10">
+            <Text className="text-lg font-bold text-center mb-5">
+              Seleccionar origen
+            </Text>
+
+            <TouchableOpacity
+              className="flex-row items-center p-4 bg-gray-50 rounded-xl mb-3"
+              onPress={() => {
+                setSourceModalVisible(false);
+                pickFromCamera();
+              }}
+            >
+              <Text className="text-2xl mr-4">📷</Text>
+              <View className="flex-1">
+                <Text className="font-semibold">Tomar foto</Text>
+                <Text className="text-gray-500 text-sm">Usar la cámara</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="flex-row items-center p-4 bg-gray-50 rounded-xl mb-3"
+              onPress={() => {
+                setSourceModalVisible(false);
+                pickFromGallery();
+              }}
+            >
+              <Text className="text-2xl mr-4">🖼️</Text>
+              <View className="flex-1">
+                <Text className="font-semibold">Elegir de galería</Text>
+                <Text className="text-gray-500 text-sm">Seleccionar fotos existentes</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="flex-row items-center p-4 bg-gray-50 rounded-xl mb-3"
+              onPress={() => {
+                setSourceModalVisible(false);
+                pickDocument();
+              }}
+            >
+              <Text className="text-2xl mr-4">📄</Text>
+              <View className="flex-1">
+                <Text className="font-semibold">Seleccionar documento</Text>
+                <Text className="text-gray-500 text-sm">PDF u otros archivos</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="p-4 items-center"
+              onPress={() => setSourceModalVisible(false)}
+            >
+              <Text className="text-gray-500 font-medium">Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
       </Modal>
     </View>
   );

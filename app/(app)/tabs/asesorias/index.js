@@ -34,6 +34,7 @@ export default function AsesoriasScreen() {
   const [stats, setStats] = useState(null);
   const [nextAppointment, setNextAppointment] = useState(null);
   const [canSendInvoices, setCanSendInvoices] = useState(false);
+  const [allowChat, setAllowChat] = useState(true);
 
   const loadAdvisoryData = useCallback(async () => {
     try {
@@ -53,6 +54,7 @@ export default function AsesoriasScreen() {
         setStats(response.data?.stats || null);
         setNextAppointment(response.data?.next_appointment || null);
         setCanSendInvoices(response.data?.can_send_invoices || false);
+        setAllowChat(response.data?.allow_chat !== false);
       } else if (__DEV__) {
         console.log("[Asesorias] Response status not ok:", response?.status);
       }
@@ -184,7 +186,7 @@ export default function AsesoriasScreen() {
 
         {/* Grid de opciones 2x2 + 1 */}
         <View className="flex-row flex-wrap justify-between">
-          {MENU_OPTIONS.slice(0, 4).map((option) => {
+          {MENU_OPTIONS.filter(opt => allowChat || opt.id !== "tu-asesor").slice(0, 4).map((option) => {
             const badgeCount = option.statKey ? stats?.[option.statKey] : 0;
 
             return (
@@ -217,7 +219,7 @@ export default function AsesoriasScreen() {
         </View>
 
         {/* Opciones adicionales como filas */}
-        {MENU_OPTIONS.slice(4).map((option) => (
+        {MENU_OPTIONS.filter(opt => allowChat || opt.id !== "tu-asesor").slice(4).map((option) => (
           <TouchableOpacity
             key={option.id}
             className="bg-white rounded-2xl p-4 flex-row items-center mb-3"
@@ -244,7 +246,7 @@ export default function AsesoriasScreen() {
         {canSendInvoices && (
           <TouchableOpacity
             className="bg-primary rounded-2xl p-5 mt-6 flex-row items-center justify-center"
-            onPress={() => router.push("/tabs/asesorias/facturas")}
+            onPress={() => router.push("/tabs/asesorias/facturas?autoUpload=true")}
             activeOpacity={0.7}
             style={{
               shadowColor: "#30D4D1",

@@ -20,7 +20,12 @@
     },
     "ios": {
       "bundleIdentifier": "com.boldsoftware.facilitame",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Facilítame necesita acceso a la cámara para tomar fotografías de tus documentos y enviarlos de forma segura al momento de gestionar tus solicitudes.",
+        "NSPhotoLibraryUsageDescription": "Facilítame necesita acceso a tus fotos para que puedas seleccionar fotos de tus documentos para enviárnoslos.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "googleServicesFile": "./google-services.json",
@@ -36,15 +41,23 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/ic_launcher.png",
+          "color": "#30D4D1"
+        }
+      ]
     ],
     "extra": {
       "router": {
         "origin": false
       },
       "eas": {
-        "projectId": "81fde224-8ffa-45e8-addd-dd0b7e238423"
+        "projectId": "0363ff40-29f8-44db-be55-35175ca21b18"
       }
-    }
+    },
+    "owner": "facilitame2024"
   }
 }

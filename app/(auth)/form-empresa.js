@@ -10,6 +10,8 @@ import {
   Text,
   StatusBar,
   Platform,
+  TouchableOpacity,
+  ActionSheetIOS,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import Checkbox from "expo-checkbox";
@@ -205,22 +207,45 @@ export default function FormEmpresaScreen() {
 
         <View className="w-full mb-2">
           <View
-            className={`w-full h-14 border-2 ${errors.region_code ? "border-red-500" : "border-bright"} bg-white rounded-2xl`}
+            className={`w-full h-14 border-2 ${errors.region_code ? "border-red-500" : "border-bright"} bg-white rounded-2xl justify-center`}
           >
-            <Picker
-              selectedValue={formData.region_code}
-              onValueChange={(value) => updateField("region_code", value)}
-              style={{ width: "100%", color: "#777" }}
-            >
-              <Picker.Item label="Provincia" value="" />
-              {PROVINCES.map((province) => (
-                <Picker.Item
-                  key={province.code}
-                  label={province.name}
-                  value={province.code}
-                />
-              ))}
-            </Picker>
+            {Platform.OS === "ios" ? (
+              <TouchableOpacity
+                onPress={() => {
+                  const options = [...PROVINCES.map(p => p.name), "Cancelar"];
+                  ActionSheetIOS.showActionSheetWithOptions(
+                    { options, cancelButtonIndex: options.length - 1 },
+                    (buttonIndex) => {
+                      if (buttonIndex < PROVINCES.length) {
+                        updateField("region_code", PROVINCES[buttonIndex].code);
+                      }
+                    }
+                  );
+                }}
+                className="px-4 h-full justify-center"
+              >
+                <Text style={{ color: "#777" }}>
+                  {formData.region_code
+                    ? PROVINCES.find(p => p.code === formData.region_code)?.name
+                    : "Provincia"}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <Picker
+                selectedValue={formData.region_code}
+                onValueChange={(value) => updateField("region_code", value)}
+                style={{ width: "100%", color: "#777" }}
+              >
+                <Picker.Item label="Provincia" value="" />
+                {PROVINCES.map((province) => (
+                  <Picker.Item
+                    key={province.code}
+                    label={province.name}
+                    value={province.code}
+                  />
+                ))}
+              </Picker>
+            )}
           </View>
           {errors.region_code && (
             <Text className="text-red-500 text-sm mt-1 ml-1">

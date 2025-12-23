@@ -33,6 +33,7 @@ export default function TuAsesorScreen() {
   const [newMessage, setNewMessage] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [allowChat, setAllowChat] = useState(true);
 
   const loadMessages = useCallback(async () => {
     try {
@@ -45,6 +46,7 @@ export default function TuAsesorScreen() {
         setAdvisory(response.data?.advisory || null);
         setMessages(response.data?.messages || []);
         setUnreadCount(response.data?.unread_count || 0);
+        setAllowChat(response.data?.allow_chat !== false);
       }
     } catch (_error) {
       // Silenciar
@@ -264,6 +266,26 @@ export default function TuAsesorScreen() {
           onPress={() => router.push("/tabs/asesorias/vincular")}
         >
           <Text className="text-white font-semibold">Vincular asesoría</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (!allowChat) {
+    return (
+      <View className="flex-1 bg-background items-center justify-center p-5">
+        <Text className="text-5xl mb-4">💬</Text>
+        <Text className="text-gray-800 text-center text-lg font-semibold mb-2">
+          Chat no disponible
+        </Text>
+        <Text className="text-gray-500 text-center mb-4 px-6">
+          El chat con tu asesoría no está habilitado en este momento
+        </Text>
+        <TouchableOpacity
+          className="bg-gray-200 px-6 py-3 rounded-full"
+          onPress={() => router.back()}
+        >
+          <Text className="text-gray-700 font-semibold">Volver</Text>
         </TouchableOpacity>
       </View>
     );
