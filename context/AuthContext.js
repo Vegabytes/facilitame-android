@@ -4,6 +4,7 @@
  */
 
 import React, { createContext, useState, useEffect, useContext } from "react";
+import { Platform } from "react-native";
 import { fetchWithAuth, setGlobalLogout } from "../utils/api";
 import {
   saveAuthToken,
@@ -11,6 +12,7 @@ import {
   removeAuthToken,
   clearAllStorage,
 } from "../utils/storage";
+import { registerForPushNotificationsAsync } from "../utils/notifications";
 
 const AuthContext = createContext();
 
@@ -30,6 +32,13 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     setGlobalLogout(logout);
   }, []);
+
+  // Registrar notificaciones push cuando el usuario esté autenticado
+  useEffect(() => {
+    if (isAuthenticated && Platform.OS !== "web") {
+      registerForPushNotificationsAsync();
+    }
+  }, [isAuthenticated]);
 
   /**
    * Carga el estado de autenticación desde el almacenamiento

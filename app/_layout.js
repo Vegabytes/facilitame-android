@@ -18,11 +18,6 @@ export default function RootLayout() {
   const notificationListener = useRef(null);
   const responseListener = useRef(null);
 
-  // Solo registrar notificaciones en plataformas nativas
-  if (Platform.OS !== "web") {
-    registerForPushNotificationsAsync();
-  }
-
   useEffect(() => {
     // Solo configurar listeners de notificaciones en plataformas nativas
     if (Platform.OS !== "web") {

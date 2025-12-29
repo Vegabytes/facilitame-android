@@ -83,14 +83,17 @@ export default function FacturasScreen() {
     }, [loadInvoices]),
   );
 
-  // Auto-abrir picker si viene con autoUpload=true
+  // Auto-abrir modal de envío si viene con autoUpload=true
   useEffect(() => {
     if (autoUpload === "true" && canSend && !loading && !autoUploadTriggered) {
       setAutoUploadTriggered(true);
-      setAutoUploadLoading(true);
-      // Pequeño delay para que la UI esté lista
+      // Pequeño delay para que la UI esté lista, luego abrir modal Y selector de fuente
       setTimeout(() => {
-        pickDocumentAuto();
+        setModalVisible(true);
+        // Abrir directamente el selector de cámara/galería/documento
+        setTimeout(() => {
+          showSourcePicker();
+        }, 300);
       }, 100);
     }
   }, [autoUpload, canSend, loading, autoUploadTriggered]);
