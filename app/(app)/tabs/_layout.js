@@ -1,5 +1,6 @@
 import { Tabs } from "expo-router";
 import { Image, View } from "react-native";
+import { useEffect } from "react";
 import { useAuth } from "../../../context/AuthContext";
 
 function TabIcon({ source, sourceActive, focused }) {
@@ -29,7 +30,12 @@ function TabIcon({ source, sourceActive, focused }) {
 }
 
 export default function TabsLayout() {
-  const { hasServicesEnabled } = useAuth();
+  const { hasServicesEnabled, refreshServicesStatus } = useAuth();
+
+  // Refrescar estado de servicios al montar el layout
+  useEffect(() => {
+    refreshServicesStatus();
+  }, []);
 
   return (
     <Tabs

@@ -137,10 +137,13 @@ export default function NuevaCitaScreen() {
     setLoading(true);
 
     try {
-      // Combinar fecha y hora
-      const dateStr = selectedDate.toISOString().split("T")[0];
-      const timeStr = `${String(selectedTime.getHours()).padStart(2, "0")}:${String(selectedTime.getMinutes()).padStart(2, "0")}:00`;
-      const proposedDate = `${dateStr} ${timeStr}`;
+      // Combinar fecha y hora (usando hora local, no UTC)
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+      const day = String(selectedDate.getDate()).padStart(2, "0");
+      const hours = String(selectedTime.getHours()).padStart(2, "0");
+      const minutes = String(selectedTime.getMinutes()).padStart(2, "0");
+      const proposedDate = `${year}-${month}-${day} ${hours}:${minutes}:00`;
 
       const response = await fetchWithAuth("customer-request-appointment", {
         advisory_id: advisoryId,
