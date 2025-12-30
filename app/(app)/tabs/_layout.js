@@ -1,5 +1,6 @@
 import { Tabs } from "expo-router";
 import { Image, View } from "react-native";
+import { useAuth } from "../../../context/AuthContext";
 
 function TabIcon({ source, sourceActive, focused }) {
   // Si hay versión activa, usar esa imagen cuando está focused
@@ -28,6 +29,8 @@ function TabIcon({ source, sourceActive, focused }) {
 }
 
 export default function TabsLayout() {
+  const { hasServicesEnabled } = useAuth();
+
   return (
     <Tabs
       screenOptions={{
@@ -51,7 +54,7 @@ export default function TabsLayout() {
         tabBarHideOnKeyboard: true,
       }}
     >
-      {/* 1. Inicio */}
+      {/* 1. Inicio - Solo visible si tiene servicios */}
       <Tabs.Screen
         name="inicio"
         options={{
@@ -63,6 +66,8 @@ export default function TabsLayout() {
               focused={focused}
             />
           ),
+          href: hasServicesEnabled ? undefined : null,
+          tabBarItemStyle: hasServicesEnabled ? {} : { display: "none" },
         }}
         listeners={({ navigation, route }) => ({
           tabPress: (e) => {
@@ -74,7 +79,7 @@ export default function TabsLayout() {
           },
         })}
       />
-      {/* 2. Servicios */}
+      {/* 2. Servicios - Solo visible si tiene servicios */}
       <Tabs.Screen
         name="servicios"
         options={{
@@ -86,6 +91,8 @@ export default function TabsLayout() {
               focused={focused}
             />
           ),
+          href: hasServicesEnabled ? undefined : null,
+          tabBarItemStyle: hasServicesEnabled ? {} : { display: "none" },
         }}
         listeners={({ navigation, route }) => ({
           tabPress: (e) => {
@@ -119,7 +126,7 @@ export default function TabsLayout() {
           },
         })}
       />
-      {/* 4. Mis Servicios */}
+      {/* 4. Mis Servicios - Solo visible si tiene servicios */}
       <Tabs.Screen
         name="mis-solicitudes"
         options={{
@@ -131,6 +138,8 @@ export default function TabsLayout() {
               focused={focused}
             />
           ),
+          href: hasServicesEnabled ? undefined : null,
+          tabBarItemStyle: hasServicesEnabled ? {} : { display: "none" },
         }}
         listeners={({ navigation, route }) => ({
           tabPress: (e) => {

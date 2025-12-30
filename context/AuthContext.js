@@ -22,6 +22,7 @@ export function AuthProvider({ children }) {
   const [isReady, setIsReady] = useState(false);
   const [profilePicture, setProfilePicture] = useState(null);
   const [user, setUser] = useState(null);
+  const [hasServicesEnabled, setHasServicesEnabled] = useState(false);
 
   // Cargar estado de autenticación al iniciar
   useEffect(() => {
@@ -71,11 +72,34 @@ export function AuthProvider({ children }) {
         // Si falla cargar el perfil, seguimos autenticados pero sin foto
         console.log("No se pudo cargar la foto de perfil");
       }
+
+      // Cargar si tiene servicios habilitados
+      await loadServicesStatus();
     } catch (error) {
       console.error("Error cargando estado de autenticación:", error);
       setIsAuthenticated(false);
     } finally {
       setIsReady(true);
+    }
+  };
+
+  /**
+   * Carga el estado de servicios habilitados del usuario
+   */
+  const loadServicesStatus = async () => {
+    try {
+      const response = await fetchWithAuth(
+        "app-user-has-services",
+        null,
+        { silent: true }
+      );
+
+      if (response && response.status === "ok") {
+        setHasServicesEnabled(response.data?.has_services || false);
+      }
+    } catch (error) {
+      console.log("No se pudo verificar servicios habilitados");
+      setHasServicesEnabled(false);
     }
   };
 
@@ -103,6 +127,9 @@ export function AuthProvider({ children }) {
       } catch (profileError) {
         console.log("No se pudo cargar la foto de perfil");
       }
+
+      // Cargar si tiene servicios habilitados
+      await loadServicesStatus();
     } catch (error) {
       console.error("Error al iniciar sesión:", error);
       throw error;
@@ -119,6 +146,7 @@ export function AuthProvider({ children }) {
       setIsAuthenticated(false);
       setProfilePicture(null);
       setUser(null);
+      setHasServicesEnabled(false);
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
     }
@@ -146,10 +174,12 @@ export function AuthProvider({ children }) {
     isReady,
     profilePicture,
     user,
+    hasServicesEnabled,
     login,
     logout,
     updateUser,
     setProfilePicture: updateProfilePicture,
+    refreshServicesStatus: loadServicesStatus,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
