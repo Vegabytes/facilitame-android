@@ -23,6 +23,8 @@ export function AuthProvider({ children }) {
   const [profilePicture, setProfilePicture] = useState(null);
   const [user, setUser] = useState(null);
   const [hasServicesEnabled, setHasServicesEnabled] = useState(false);
+  const [hasAdvisory, setHasAdvisory] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
 
   // Cargar estado de autenticación al iniciar
   useEffect(() => {
@@ -96,10 +98,14 @@ export function AuthProvider({ children }) {
 
       if (response && response.status === "ok") {
         setHasServicesEnabled(response.data?.has_services || false);
+        setHasAdvisory(response.data?.has_advisory || false);
+        setIsGuest(response.data?.is_guest || false);
       }
     } catch (error) {
       console.log("No se pudo verificar servicios habilitados");
       setHasServicesEnabled(false);
+      setHasAdvisory(false);
+      setIsGuest(false);
     }
   };
 
@@ -147,6 +153,8 @@ export function AuthProvider({ children }) {
       setProfilePicture(null);
       setUser(null);
       setHasServicesEnabled(false);
+      setHasAdvisory(false);
+      setIsGuest(false);
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
     }
@@ -175,6 +183,8 @@ export function AuthProvider({ children }) {
     profilePicture,
     user,
     hasServicesEnabled,
+    hasAdvisory,
+    isGuest,
     login,
     logout,
     updateUser,
