@@ -120,7 +120,7 @@ export default function VincularAsesoria() {
             accessibilityLabel="Volver"
             accessibilityRole="button"
           >
-            <Text className="text-primary text-lg">← Volver</Text>
+            <Text className="text-button text-lg font-semibold">← Volver</Text>
           </TouchableOpacity>
 
           <View className="mb-6">

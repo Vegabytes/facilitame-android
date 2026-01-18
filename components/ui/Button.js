@@ -11,8 +11,8 @@ const VARIANTS = {
     text: "text-white",
   },
   secondary: {
-    container: "bg-primary",
-    text: "text-white",
+    container: "bg-white border border-gray-200",
+    text: "text-button",
   },
   outline: {
     container: "bg-background border border-button",

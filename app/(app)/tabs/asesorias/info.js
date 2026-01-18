@@ -156,7 +156,7 @@ export default function InfoAsesoria() {
           accessibilityLabel="Volver"
           accessibilityRole="button"
         >
-          <Text className="text-primary text-lg">← Volver</Text>
+          <Text className="text-button text-lg font-semibold">← Volver</Text>
         </TouchableOpacity>
 
         {/* Card Principal */}
