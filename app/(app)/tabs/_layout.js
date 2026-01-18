@@ -1,7 +1,8 @@
-import { Tabs } from "expo-router";
+import { Tabs, Redirect } from "expo-router";
 import { Image, View } from "react-native";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../../../context/AuthContext";
+import { usePathname } from "expo-router";
 
 function TabIcon({ source, sourceActive, focused }) {
   // Si hay versión activa, usar esa imagen cuando está focused
@@ -30,12 +31,42 @@ function TabIcon({ source, sourceActive, focused }) {
 }
 
 export default function TabsLayout() {
-  const { hasServicesEnabled, refreshServicesStatus } = useAuth();
+  const { hasServicesEnabled, hasAdvisory, isGuest, refreshServicesStatus, isReady } = useAuth();
+  const pathname = usePathname();
+  const [servicesLoaded, setServicesLoaded] = useState(false);
 
   // Refrescar estado de servicios al montar el layout
   useEffect(() => {
-    refreshServicesStatus();
+    const loadServices = async () => {
+      await refreshServicesStatus();
+      setServicesLoaded(true);
+    };
+    loadServices();
   }, []);
+
+  // Esperar a que se cargue el estado de servicios antes de renderizar
+  if (!servicesLoaded) {
+    return null;
+  }
+
+  // Determinar visibilidad de tabs según tipo de usuario
+  // Invitado: Inicio, Servicios, Mis Solicitudes, Perfil (sin Asesoría)
+  // Sin asesoría: Inicio, Servicios, Mis Servicios, Perfil
+  // Con asesoría sin servicios: Asesoría, Perfil
+  // Con asesoría con servicios: Todo
+  const showInicio = hasServicesEnabled;
+  const showServicios = hasServicesEnabled;
+  const showMisSolicitudes = hasServicesEnabled;
+  const showAsesoria = hasAdvisory && !isGuest;
+
+  // Redirigir al usuario a la pestaña correcta según su configuración
+  // Si tiene asesoría pero no servicios, redirigir a asesoría cuando intenta acceder a tabs de servicios
+  if (isReady && !hasServicesEnabled && hasAdvisory && !isGuest) {
+    // Si está en una ruta de servicios, redirigir a asesoría
+    if (pathname === "/" || pathname.includes("/inicio") || pathname.includes("/servicios") || pathname.includes("/mis-solicitudes")) {
+      return <Redirect href="/(app)/tabs/asesorias" />;
+    }
+  }
 
   return (
     <Tabs
@@ -60,7 +91,7 @@ export default function TabsLayout() {
         tabBarHideOnKeyboard: true,
       }}
     >
-      {/* 1. Inicio - Solo visible si tiene servicios */}
+      {/* 1. Inicio - Solo visible si tiene servicios y NO es invitado */}
       <Tabs.Screen
         name="inicio"
         options={{
@@ -72,8 +103,8 @@ export default function TabsLayout() {
               focused={focused}
             />
           ),
-          href: hasServicesEnabled ? undefined : null,
-          tabBarItemStyle: hasServicesEnabled ? {} : { display: "none" },
+          href: showInicio ? undefined : null,
+          tabBarItemStyle: showInicio ? {} : { display: "none" },
         }}
         listeners={({ navigation, route }) => ({
           tabPress: (e) => {
@@ -85,7 +116,7 @@ export default function TabsLayout() {
           },
         })}
       />
-      {/* 2. Servicios - Solo visible si tiene servicios */}
+      {/* 2. Servicios - Visible si tiene servicios (incluyendo invitados) */}
       <Tabs.Screen
         name="servicios"
         options={{
@@ -97,8 +128,8 @@ export default function TabsLayout() {
               focused={focused}
             />
           ),
-          href: hasServicesEnabled ? undefined : null,
-          tabBarItemStyle: hasServicesEnabled ? {} : { display: "none" },
+          href: showServicios ? undefined : null,
+          tabBarItemStyle: showServicios ? {} : { display: "none" },
         }}
         listeners={({ navigation, route }) => ({
           tabPress: (e) => {
@@ -110,7 +141,7 @@ export default function TabsLayout() {
           },
         })}
       />
-      {/* 3. Asesoría */}
+      {/* 3. Asesoría - Solo visible si tiene asesoría vinculada y NO es invitado */}
       <Tabs.Screen
         name="asesorias"
         options={{
@@ -121,6 +152,8 @@ export default function TabsLayout() {
               focused={focused}
             />
           ),
+          href: showAsesoria ? undefined : null,
+          tabBarItemStyle: showAsesoria ? {} : { display: "none" },
         }}
         listeners={({ navigation, route }) => ({
           tabPress: (e) => {
@@ -144,8 +177,8 @@ export default function TabsLayout() {
               focused={focused}
             />
           ),
-          href: hasServicesEnabled ? undefined : null,
-          tabBarItemStyle: hasServicesEnabled ? {} : { display: "none" },
+          href: showMisSolicitudes ? undefined : null,
+          tabBarItemStyle: showMisSolicitudes ? {} : { display: "none" },
         }}
         listeners={({ navigation, route }) => ({
           tabPress: (e) => {
