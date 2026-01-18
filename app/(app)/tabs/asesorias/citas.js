@@ -16,11 +16,17 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { fetchWithAuth } from "../../../../utils/api";
 
 const STATUS_CONFIG = {
-  solicitado: {
-    label: "Pendiente",
+  confirmar: {
+    label: "Confirmar fecha",
     bg: "bg-amber-100",
     text: "text-amber-800",
     icon: "⏳",
+  },
+  esperando: {
+    label: "Esperando asesoría",
+    bg: "bg-gray-100",
+    text: "text-gray-600",
+    icon: "⏱️",
   },
   agendado: {
     label: "Confirmada",
@@ -60,7 +66,7 @@ export default function CitasScreen() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState(""); // '' = todas, o status específico
+  const [filter, setFilter] = useState("confirmar"); // Por defecto mostrar citas por confirmar
 
   const loadAppointments = useCallback(async () => {
     try {
@@ -173,9 +179,17 @@ export default function CitasScreen() {
 
   const renderAppointment = useCallback(
     ({ item }) => {
-      const statusConfig =
-        STATUS_CONFIG[item.status] || STATUS_CONFIG.solicitado;
       const needsConfirmation = item.needs_confirmation_from === "customer";
+
+      // Determinar estado dinámico
+      let displayStatus;
+      if (item.status === "solicitado") {
+        displayStatus = needsConfirmation ? "confirmar" : "esperando";
+      } else {
+        displayStatus = item.status;
+      }
+
+      const statusConfig = STATUS_CONFIG[displayStatus] || STATUS_CONFIG.confirmar;
       const displayDate = item.scheduled_date || item.proposed_date;
 
       return (
@@ -324,7 +338,7 @@ export default function CitasScreen() {
           accessibilityLabel="Volver"
           accessibilityRole="button"
         >
-          <Text className="text-primary text-lg">← Volver</Text>
+          <Text className="text-button text-lg font-semibold">← Volver</Text>
         </TouchableOpacity>
 
         <View className="flex-row items-center justify-between mb-4">
@@ -340,12 +354,13 @@ export default function CitasScreen() {
         </View>
 
         {/* Filtros */}
-        <View className="flex-row mb-4 gap-2">
+        <View className="flex-row mb-4 gap-2 flex-wrap">
           {[
-            { value: "", label: "Todas" },
-            { value: "solicitado", label: "Pendientes" },
+            { value: "confirmar", label: "Por confirmar" },
+            { value: "esperando_asesoria", label: "Esperando" },
             { value: "agendado", label: "Confirmadas" },
-            { value: "finalizado", label: "Completadas" },
+            { value: "finalizado", label: "Finalizadas" },
+            { value: "cancelado", label: "Canceladas" },
           ].map((f) => (
             <TouchableOpacity
               key={f.value}
@@ -381,7 +396,17 @@ export default function CitasScreen() {
           <View className="items-center py-10">
             <Text className="text-5xl mb-4">📅</Text>
             <Text className="text-gray-500 text-center text-lg">
-              No tienes citas {filter ? "con este estado" : ""}
+              {filter === "confirmar"
+                ? "No tienes citas por confirmar"
+                : filter === "esperando_asesoria"
+                ? "No tienes citas esperando respuesta"
+                : filter === "agendado"
+                ? "No tienes citas confirmadas"
+                : filter === "finalizado"
+                ? "No tienes citas finalizadas"
+                : filter === "cancelado"
+                ? "No tienes citas canceladas"
+                : "No tienes citas"}
             </Text>
             <TouchableOpacity
               className="bg-primary px-6 py-3 rounded-full mt-4"
