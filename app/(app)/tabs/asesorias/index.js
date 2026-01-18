@@ -22,6 +22,7 @@ const MENU_OPTIONS = [
   { id: "citas", name: "Citas", icon: "📅", description: "Gestionar tus citas", route: "/tabs/asesorias/citas", statKey: "appointments_needs_confirmation" },
   { id: "comunicados", name: "Comunicados", icon: "💬", description: "Mensajes de tu asesoría", route: "/tabs/asesorias/comunicaciones", statKey: "communications_unread" },
   { id: "nueva-cita", name: "Nueva cita", icon: "➕", description: "Solicitar una cita", route: "/tabs/asesorias/nueva-cita" },
+  { id: "enviar-factura", name: "Enviar Factura", icon: "📤", description: "Sube una factura", route: "/tabs/asesorias/facturas?autoUpload=true", requiresInvoices: true },
   { id: "info", name: "Mi asesoría", icon: "🏢", description: "Información de contacto", route: "/tabs/asesorias/info" },
 ];
 
@@ -219,7 +220,7 @@ export default function AsesoriasScreen() {
         </View>
 
         {/* Opciones adicionales como filas */}
-        {MENU_OPTIONS.filter(opt => allowChat || opt.id !== "tu-asesor").slice(4).map((option) => (
+        {MENU_OPTIONS.filter(opt => (allowChat || opt.id !== "tu-asesor") && (!opt.requiresInvoices || canSendInvoices)).slice(4).map((option) => (
           <TouchableOpacity
             key={option.id}
             className="bg-white rounded-2xl p-4 flex-row items-center mb-3"
@@ -242,24 +243,6 @@ export default function AsesoriasScreen() {
           </TouchableOpacity>
         ))}
 
-        {/* Botón grande Enviar Factura */}
-        {canSendInvoices && (
-          <TouchableOpacity
-            className="bg-primary rounded-2xl p-5 mt-6 flex-row items-center justify-center"
-            onPress={() => router.push("/tabs/asesorias/facturas?autoUpload=true")}
-            activeOpacity={0.7}
-            style={{
-              shadowColor: "#30D4D1",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 12,
-              elevation: 6,
-            }}
-          >
-            <Text className="text-3xl mr-3">📤</Text>
-            <Text className="text-white font-extrabold text-lg">Enviar Factura</Text>
-          </TouchableOpacity>
-        )}
       </View>
     </ScrollView>
   );
