@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
+  Image,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState, useCallback } from "react";
@@ -59,12 +60,21 @@ export default function ChildrenScreen() {
             key={servicio.id}
             onPress={() => {
               router.push(
-                `/tabs/servicios/form?id=${servicio.id}&category_name=${servicio.name}&category_img_uri=${category_img_uri}`,
+                `/tabs/servicios/form?id=${servicio.id}&category_name=${servicio.name}&category_img_uri=${servicio.category_img_uri || category_img_uri}`,
               );
             }}
           >
             <View className="w-full h-auto m-0 p-5 flex-row items-center gap-5 rounded-2xl bg-white mb-5">
-              <View className="p-4">
+              {servicio.category_img_uri ? (
+                <View className="h-14 w-14 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                  <Image
+                    source={{ uri: servicio.category_img_uri }}
+                    className="h-8 w-8"
+                    resizeMode="contain"
+                  />
+                </View>
+              ) : null}
+              <View className="flex-1">
                 <Text className="font-extrabold">{servicio.name}</Text>
               </View>
             </View>
