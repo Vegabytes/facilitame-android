@@ -14,6 +14,7 @@ import {
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAuth } from "../../../../context/AuthContext";
 import { useCallback, useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import { fetchWithAuth } from "../../../../utils/api";
 import * as ImagePicker from "expo-image-picker";
 import { LoadingScreen, Button, Input, Card } from "../../../../components/ui";
@@ -21,7 +22,7 @@ import { VALIDATION_REGEX, ERROR_MESSAGES } from "../../../../utils/constants";
 
 export default function MiCuentaScreen() {
   const router = useRouter();
-  const { profilePicture, setProfilePicture } = useAuth();
+  const { profilePicture, setProfilePicture, isGuest, logout } = useAuth();
 
   // Estados
   const [loading, setLoading] = useState(true);
@@ -203,6 +204,69 @@ export default function MiCuentaScreen() {
 
   if (loading) {
     return <LoadingScreen />;
+  }
+
+  // Vista para invitados
+  if (isGuest) {
+    return (
+      <ScrollView className="bg-background p-4">
+        <Card variant="primary" className="items-center py-8">
+          <Ionicons name="person-circle-outline" size={80} color="white" />
+          <Text className="text-2xl font-extrabold text-white mt-4">
+            Invitado
+          </Text>
+          <Text className="text-white/80 text-center mt-2 px-4">
+            Estás navegando como invitado. Regístrate para acceder a todas las funcionalidades.
+          </Text>
+        </Card>
+
+        <Card className="mt-4">
+          <Text className="text-lg font-bold text-gray-800 mb-2">
+            Beneficios de registrarte
+          </Text>
+          <View className="gap-2">
+            <View className="flex-row items-center gap-2">
+              <Ionicons name="checkmark-circle" size={20} color="#30D4D1" />
+              <Text className="text-gray-600">Solicitar servicios</Text>
+            </View>
+            <View className="flex-row items-center gap-2">
+              <Ionicons name="checkmark-circle" size={20} color="#30D4D1" />
+              <Text className="text-gray-600">Seguimiento de tus solicitudes</Text>
+            </View>
+            <View className="flex-row items-center gap-2">
+              <Ionicons name="checkmark-circle" size={20} color="#30D4D1" />
+              <Text className="text-gray-600">Notificaciones en tiempo real</Text>
+            </View>
+            <View className="flex-row items-center gap-2">
+              <Ionicons name="checkmark-circle" size={20} color="#30D4D1" />
+              <Text className="text-gray-600">Historial de servicios</Text>
+            </View>
+          </View>
+        </Card>
+
+        <Button
+          variant="primary"
+          className="mt-4"
+          onPress={async () => {
+            await logout();
+            router.replace("/(auth)/form-selector");
+          }}
+        >
+          Crear cuenta
+        </Button>
+
+        <Button
+          variant="secondary"
+          className="mt-2 mb-12"
+          onPress={async () => {
+            await logout();
+            router.replace("/(auth)/login");
+          }}
+        >
+          Ya tengo cuenta
+        </Button>
+      </ScrollView>
+    );
   }
 
   return (
