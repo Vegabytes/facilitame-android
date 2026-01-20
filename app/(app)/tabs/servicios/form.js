@@ -578,13 +578,51 @@ function renderInputField(
         options = [];
       }
 
+      if (Platform.OS === "ios") {
+        const currentValue = selectedValues[field.key]?.value || "";
+        const displayLabel = currentValue || "Seleccione una opción";
+
+        return (
+          <TouchableOpacity
+            key={field.key}
+            onPress={() => {
+              const optionLabels = ["Seleccione una opción", ...options, "Cancelar"];
+              ActionSheetIOS.showActionSheetWithOptions(
+                {
+                  options: optionLabels,
+                  cancelButtonIndex: optionLabels.length - 1,
+                },
+                (buttonIndex) => {
+                  if (buttonIndex > 0 && buttonIndex < optionLabels.length - 1) {
+                    setSelectedValues({
+                      ...selectedValues,
+                      [field.key]: {
+                        value: options[buttonIndex - 1],
+                        name: field.name,
+                        key: field.key,
+                      },
+                    });
+                  }
+                }
+              );
+            }}
+            className="w-full border-2 border-primary bg-white rounded-3xl ps-5"
+            style={{ paddingVertical: 16, paddingRight: 16 }}
+            accessibilityLabel={`picker-${field.key}`}
+            testID={`select-${field.key}`}
+          >
+            <Text style={{ color: currentValue ? "#333" : "#999" }}>{displayLabel}</Text>
+          </TouchableOpacity>
+        );
+      }
+
       return (
         <View
           className="w-full border-2 border-primary bg-white rounded-3xl ps-5"
           key={field.key}
         >
           <Picker
-            selectedValue={selectedValues[field.key] || ""}
+            selectedValue={selectedValues[field.key]?.value || ""}
             onValueChange={(value) =>
               setSelectedValues({
                 ...selectedValues,
