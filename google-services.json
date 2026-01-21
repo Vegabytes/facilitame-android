@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "349497951890",
+    "project_id": "facilitame-6ab1d",
+    "storage_bucket": "facilitame-6ab1d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:349497951890:android:5052aa2f8fac45bb53c84b",
+        "android_client_info": {
+          "package_name": "com.boldsoftware.facilitame"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAnzit2aLIQrpvYjR8mo9J0Np0MrPyN-LU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

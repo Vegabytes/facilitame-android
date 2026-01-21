@@ -78,7 +78,7 @@ yarn-error.*
 # @end expo-cli
 
 # Sensitive files - credentials and keys
-google-services.json
+# google-services.json - Required for EAS builds (contains public Firebase config)
 *.keystore
 facilitame-*.json
 
