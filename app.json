@@ -36,7 +36,7 @@
         "backgroundImage": "./assets/ic_launcher_background.png"
       },
       "label": "Facilítame",
-      "versionCode": 54
+      "versionCode": 57
     },
     "web": {
       "favicon": "./assets/favicon.png"
