@@ -3,6 +3,7 @@ package com.boldsoftware.facilitame
 import android.app.Application
 import android.content.res.Configuration
 
+import com.boldsoftware.facilitameandroid.BuildConfig
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactNativeHost

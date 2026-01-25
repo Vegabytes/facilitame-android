@@ -3,6 +3,8 @@ package com.boldsoftware.facilitame
 import android.os.Build
 import android.os.Bundle
 
+import com.boldsoftware.facilitameandroid.BuildConfig
+import com.boldsoftware.facilitameandroid.R
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
