@@ -1,7 +1,7 @@
 {
   "cli": {
     "version": ">= 14.2.0",
-    "appVersionSource": "remote"
+    "appVersionSource": "local"
   },
   "build": {
     "development": {
@@ -26,6 +26,9 @@
       "android": {
         "serviceAccountKeyPath": "./facilitame-6ab1d-a35e52bc1476.json",
         "track": "production"
+      },
+      "ios": {
+        "ascAppId": "6742243720"
       }
     }
   }
