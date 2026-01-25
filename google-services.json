@@ -7,12 +7,17 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:349497951890:android:5052aa2f8fac45bb53c84b",
+        "mobilesdk_app_id": "1:349497951890:android:c8e0459cb876018153c84b",
         "android_client_info": {
-          "package_name": "com.boldsoftware.facilitame"
+          "package_name": "com.boldsoftware.facilitameandroid"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "349497951890-8e3is6220i3bu1kfgadem9pm4f13ta6n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAnzit2aLIQrpvYjR8mo9J0Np0MrPyN-LU"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "349497951890-8e3is6220i3bu1kfgadem9pm4f13ta6n.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
