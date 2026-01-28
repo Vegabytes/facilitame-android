@@ -18,15 +18,19 @@ export default function LoginScreen() {
   const [errorMessage, setErrorMessage] = useState("");
   const [errors, setErrors] = useState({});
 
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, isReady, hasServicesEnabled, hasAdvisory, isGuest } = useAuth();
   const router = useRouter();
 
-  // Redirigir si ya está autenticado
+  // Redirigir si ya está autenticado, según el tipo de usuario
   useEffect(() => {
-    if (isAuthenticated) {
-      router.replace("/(app)/tabs/inicio");
+    if (isAuthenticated && isReady) {
+      if (!hasServicesEnabled && hasAdvisory && !isGuest) {
+        router.replace("/(app)/tabs/asesorias");
+      } else {
+        router.replace("/(app)/tabs/inicio");
+      }
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, isReady, hasServicesEnabled, hasAdvisory, isGuest, router]);
 
   /**
    * Valida los campos del formulario

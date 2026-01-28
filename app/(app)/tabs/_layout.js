@@ -33,6 +33,7 @@ function TabIcon({ source, sourceActive, focused }) {
 export default function TabsLayout() {
   const { hasServicesEnabled, hasAdvisory, isGuest, refreshServicesStatus, isReady } = useAuth();
   const pathname = usePathname();
+
   const [servicesLoaded, setServicesLoaded] = useState(false);
 
   // Refrescar estado de servicios al montar el layout

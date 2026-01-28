@@ -3,7 +3,7 @@
     "scheme": "facilitame",
     "slug": "facilitame",
     "name": "Facilítame",
-    "version": "1.3.3",
+    "version": "1.3.7",
     "orientation": "portrait",
     "platforms": [
       "ios",
@@ -21,7 +21,7 @@
     "ios": {
       "bundleIdentifier": "com.boldsoftware.facilitame",
       "supportsTablet": true,
-      "buildNumber": "10",
+      "buildNumber": "11",
       "infoPlist": {
         "NSCameraUsageDescription": "Facilítame necesita acceso a la cámara para tomar fotografías de tus documentos y enviarlos de forma segura al momento de gestionar tus solicitudes.",
         "NSPhotoLibraryUsageDescription": "Facilítame necesita acceso a tus fotos para que puedas seleccionar fotos de tus documentos para enviárnoslos.",
@@ -36,7 +36,7 @@
         "backgroundImage": "./assets/ic_launcher_background.png"
       },
       "label": "Facilítame",
-      "versionCode": 57
+      "versionCode": 67
     },
     "web": {
       "favicon": "./assets/favicon.png"
