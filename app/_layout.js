@@ -21,28 +21,27 @@ function NotificationHandler() {
   // Navegar al deeplink pendiente cuando auth esté listo
   useEffect(() => {
     if (isReady && isAuthenticated && pendingDeeplink.current) {
-      // Delay más largo para asegurar que tabs/_layout.js haya cargado servicesLoaded
-      // iOS es más estricto con la navegación y necesita que el destino exista
       const navigateToDeeplink = async () => {
         const deeplink = pendingDeeplink.current;
         pendingDeeplink.current = null;
 
-        // Esperar a que la UI esté completamente lista
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Esperar más tiempo en iOS para que tabs/_layout.js cargue servicesLoaded
+        // y el layout esté completamente montado
+        const delay = Platform.OS === "ios" ? 1500 : 500;
+        await new Promise(resolve => setTimeout(resolve, delay));
 
-        try {
-          router.push(deeplink);
-        } catch (error) {
-          console.warn("Error navigating to deeplink:", error);
-          // Fallback: intentar de nuevo después de más tiempo
-          setTimeout(() => {
-            try {
-              router.push(deeplink);
-            } catch (e) {
-              console.error("Failed to navigate to deeplink:", e);
+        const attemptNavigation = (attempt = 1) => {
+          try {
+            router.replace(deeplink);
+          } catch (error) {
+            console.warn(`Deeplink navigation attempt ${attempt} failed:`, error);
+            if (attempt < 3) {
+              setTimeout(() => attemptNavigation(attempt + 1), 1000);
             }
-          }, 1000);
-        }
+          }
+        };
+
+        attemptNavigation();
       };
 
       navigateToDeeplink();
@@ -57,18 +56,23 @@ function NotificationHandler() {
 
       responseListener.current =
         Notifications.addNotificationResponseReceivedListener((response) => {
-          const deeplink = response.notification.request.content.data?.deeplink;
+          const data = response.notification.request.content.data;
+          const deeplink = data?.deeplink;
           if (deeplink) {
             // Si auth está listo y autenticado, navegar con delay para iOS
             if (isReady && isAuthenticated) {
-              // Delay para asegurar que la UI esté lista (importante para iOS)
-              setTimeout(async () => {
+              const delay = Platform.OS === "ios" ? 1500 : 500;
+              setTimeout(() => {
                 try {
-                  router.push(deeplink);
+                  router.replace(deeplink);
                 } catch (error) {
                   console.warn("Error navigating from notification:", error);
+                  // Reintento
+                  setTimeout(() => {
+                    try { router.replace(deeplink); } catch (e) {}
+                  }, 1000);
                 }
-              }, 500);
+              }, delay);
             } else {
               // Guardar para navegar cuando esté listo
               pendingDeeplink.current = deeplink;
@@ -100,19 +104,9 @@ function NotificationHandler() {
         const deeplink = response.notification.request.content.data?.deeplink;
         if (deeplink) {
           hasHandledInitial.current = true;
-          // Si auth está listo y autenticado, navegar con delay para iOS
-          if (isReady && isAuthenticated) {
-            setTimeout(async () => {
-              try {
-                router.push(deeplink);
-              } catch (error) {
-                console.warn("Error navigating from initial notification:", error);
-              }
-            }, 500);
-          } else {
-            // Guardar para navegar cuando esté listo
-            pendingDeeplink.current = deeplink;
-          }
+          // Guardar siempre como pendiente para navegar cuando todo esté listo
+          // Esto es más fiable en iOS donde la app arranca desde cero
+          pendingDeeplink.current = deeplink;
         }
       }
     }

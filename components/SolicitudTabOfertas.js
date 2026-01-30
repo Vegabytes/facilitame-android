@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import * as FileSystem from "expo-file-system";
 import * as IntentLauncher from "expo-intent-launcher";
+import * as Sharing from "expo-sharing";
 import { CommonActions, useNavigation } from "@react-navigation/native";
 import { fetchWithAuth } from "./../utils/api";
 import { SolicitudContext } from "../context/SolicitudContext";
@@ -120,11 +121,11 @@ const SolicitudTabOfertas = () => {
           type: mimeType,
         });
       } else if (Platform.OS === "ios") {
-        const canOpen = await Linking.canOpenURL(fileUri);
-        if (canOpen) {
-          await Linking.openURL(fileUri);
+        const isAvailable = await Sharing.isAvailableAsync();
+        if (isAvailable) {
+          await Sharing.shareAsync(fileUri, { mimeType: mimeType });
         } else {
-          console.error("No se puede abrir el archivo en iOS.");
+          Alert.alert("Error", "No se puede abrir el archivo en este dispositivo.");
         }
       }
     } catch (error) {
