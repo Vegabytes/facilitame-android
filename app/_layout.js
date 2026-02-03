@@ -25,18 +25,22 @@ function NotificationHandler() {
         const deeplink = pendingDeeplink.current;
         pendingDeeplink.current = null;
 
+        console.log("🚀 Auth ready, processing pending deeplink:", deeplink);
+
         // Esperar más tiempo en iOS para que tabs/_layout.js cargue servicesLoaded
         // y el layout esté completamente montado
-        const delay = Platform.OS === "ios" ? 1500 : 500;
+        const delay = Platform.OS === "ios" ? 2000 : 800;
         await new Promise(resolve => setTimeout(resolve, delay));
 
         const attemptNavigation = (attempt = 1) => {
           try {
-            router.replace(deeplink);
+            console.log(`🔀 Attempt ${attempt} to navigate to:`, deeplink);
+            router.push(deeplink);
+            console.log("✅ Pending deeplink navigation succeeded");
           } catch (error) {
-            console.warn(`Deeplink navigation attempt ${attempt} failed:`, error);
+            console.error(`❌ Deeplink navigation attempt ${attempt} failed:`, error);
             if (attempt < 3) {
-              setTimeout(() => attemptNavigation(attempt + 1), 1000);
+              setTimeout(() => attemptNavigation(attempt + 1), 1500);
             }
           }
         };
@@ -57,24 +61,44 @@ function NotificationHandler() {
       responseListener.current =
         Notifications.addNotificationResponseReceivedListener((response) => {
           const data = response.notification.request.content.data;
-          const deeplink = data?.deeplink;
+          let deeplink = data?.deeplink;
+          console.log("📱 Notification clicked, deeplink:", deeplink);
+
+          // Validar y limpiar el deeplink
+          if (deeplink && typeof deeplink === 'string') {
+            deeplink = deeplink.trim();
+            console.log("✓ Valid deeplink format");
+          } else {
+            console.warn("⚠️ Invalid deeplink:", deeplink);
+            return;
+          }
+
           if (deeplink) {
             // Si auth está listo y autenticado, navegar con delay para iOS
             if (isReady && isAuthenticated) {
               const delay = Platform.OS === "ios" ? 1500 : 500;
+              console.log(`⏱️ Waiting ${delay}ms before navigation...`);
               setTimeout(() => {
                 try {
-                  router.replace(deeplink);
+                  console.log("🔀 Attempting navigation to:", deeplink);
+                  router.push(deeplink);
+                  console.log("✅ Navigation succeeded");
                 } catch (error) {
-                  console.warn("Error navigating from notification:", error);
+                  console.error("❌ Error navigating from notification:", error);
                   // Reintento
                   setTimeout(() => {
-                    try { router.replace(deeplink); } catch (e) {}
+                    try {
+                      console.log("🔄 Retrying navigation to:", deeplink);
+                      router.push(deeplink);
+                    } catch (e) {
+                      console.error("❌ Retry failed:", e);
+                    }
                   }, 1000);
                 }
               }, delay);
             } else {
               // Guardar para navegar cuando esté listo
+              console.log("⏸️ Auth not ready, saving deeplink for later");
               pendingDeeplink.current = deeplink;
             }
           }
@@ -99,15 +123,20 @@ function NotificationHandler() {
       // Solo manejar una vez y en plataformas nativas
       if (Platform.OS === "web" || hasHandledInitial.current) return;
 
+      console.log("🔍 Checking for initial notification...");
       const response = await Notifications.getLastNotificationResponseAsync();
       if (response) {
         const deeplink = response.notification.request.content.data?.deeplink;
+        console.log("📬 Initial notification found, deeplink:", deeplink);
         if (deeplink) {
           hasHandledInitial.current = true;
           // Guardar siempre como pendiente para navegar cuando todo esté listo
           // Esto es más fiable en iOS donde la app arranca desde cero
           pendingDeeplink.current = deeplink;
+          console.log("💾 Saved initial deeplink as pending");
         }
+      } else {
+        console.log("📭 No initial notification found");
       }
     }
     handleInitialNotification();

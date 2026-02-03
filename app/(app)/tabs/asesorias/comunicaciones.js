@@ -14,6 +14,7 @@ import {
   ScrollView,
   Linking,
   Platform,
+  TextInput,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -55,6 +56,8 @@ export default function ComunicacionesScreen() {
   const [dateTo, setDateTo] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(null); // 'from' | 'to' | null
   const [showDateFilters, setShowDateFilters] = useState(false);
+  // Búsqueda
+  const [searchQuery, setSearchQuery] = useState("");
 
   const loadCommunications = useCallback(async () => {
     try {
@@ -222,6 +225,19 @@ export default function ComunicacionesScreen() {
 
   const keyExtractor = useCallback((item) => item.id.toString(), []);
 
+  // Filtrar comunicaciones por búsqueda
+  const filteredCommunications = useCallback(() => {
+    if (!searchQuery.trim()) {
+      return communications;
+    }
+    const query = searchQuery.toLowerCase();
+    return communications.filter((comm) => {
+      const subject = (comm.subject || "").toLowerCase();
+      const message = (stripHtml(comm.message) || "").toLowerCase();
+      return subject.includes(query) || message.includes(query);
+    });
+  }, [communications, searchQuery]);
+
   if (loading) {
     return (
       <View className="flex-1 bg-background items-center justify-center">
@@ -248,9 +264,13 @@ export default function ComunicacionesScreen() {
             <Text className="text-2xl font-extrabold text-button">
               Comunicaciones
             </Text>
-            {unreadCount > 0 && (
+            {searchQuery.trim() ? (
+              <Text className="text-gray-500">
+                {filteredCommunications().length} resultados
+              </Text>
+            ) : unreadCount > 0 ? (
               <Text className="text-gray-500">{unreadCount} sin leer</Text>
-            )}
+            ) : null}
           </View>
         </View>
 
@@ -314,6 +334,20 @@ export default function ComunicacionesScreen() {
               📅 Fechas
             </Text>
           </TouchableOpacity>
+        </View>
+
+        {/* Buscador */}
+        <View className="mb-4">
+          <TextInput
+            className="bg-white rounded-xl px-4 py-3 text-gray-900"
+            placeholder="Buscar por asunto o contenido..."
+            placeholderTextColor="#9CA3AF"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+            accessibilityLabel="Buscar comunicaciones"
+          />
         </View>
 
         {/* Filtros de fecha expandibles */}
@@ -428,7 +462,7 @@ export default function ComunicacionesScreen() {
 
       {/* Lista */}
       <FlatList
-        data={communications}
+        data={filteredCommunications()}
         renderItem={renderCommunication}
         keyExtractor={keyExtractor}
         contentContainerStyle={{ padding: 20, paddingTop: 0 }}
@@ -439,9 +473,11 @@ export default function ComunicacionesScreen() {
           <View className="items-center py-10">
             <Text className="text-5xl mb-4">📨</Text>
             <Text className="text-gray-500 text-center text-lg">
-              {filter === "unread"
-                ? "No tienes comunicaciones sin leer"
-                : "No hay comunicaciones"}
+              {searchQuery.trim()
+                ? "No se encontraron comunicaciones"
+                : filter === "unread"
+                  ? "No tienes comunicaciones sin leer"
+                  : "No hay comunicaciones"}
             </Text>
           </View>
         }
