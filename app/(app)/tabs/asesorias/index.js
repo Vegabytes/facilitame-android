@@ -22,6 +22,8 @@ const MENU_OPTIONS = [
   { id: "citas", name: "Citas", icon: "📅", description: "Gestionar tus citas", route: "/tabs/asesorias/citas", statKey: "appointments_needs_confirmation" },
   { id: "comunicados", name: "Comunicados", icon: "💬", description: "Mensajes de tu asesoría", route: "/tabs/asesorias/comunicaciones", statKey: "communications_unread" },
   { id: "nueva-cita", name: "Nueva cita", icon: "➕", description: "Solicitar una cita", route: "/tabs/asesorias/nueva-cita" },
+  { id: "contratos", name: "Contratos", icon: "📋", description: "Contratos laborales", route: "/tabs/asesorias/contratos" },
+  { id: "nominas", name: "Nóminas", icon: "💰", description: "Nóminas mensuales", route: "/tabs/asesorias/nominas" },
   { id: "enviar-factura", name: "Enviar Factura", icon: "📤", description: "Sube una factura", route: "/tabs/asesorias/facturas?autoUpload=true", requiresInvoices: true },
   { id: "info", name: "Mi asesoría", icon: "🏢", description: "Información de contacto", route: "/tabs/asesorias/info" },
 ];
