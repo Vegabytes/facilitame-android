@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { Stack } from "expo-router";
 import * as Linking from "expo-linking";
@@ -9,101 +9,130 @@ import { registerForPushNotificationsAsync } from "../utils/notifications";
 import { useRouter } from "expo-router";
 import "../global.css";
 
+// Extraer deeplink de la notificación buscando en todas las ubicaciones posibles
+// iOS (APNs nativo) pone los datos custom en sitios distintos a Android (FCM)
+function extractDeeplink(response) {
+  const notification = response.notification;
+  const content = notification.request.content;
+  const trigger = notification.request.trigger;
+
+  // Log completo del response para debug en iOS
+  if (Platform.OS === "ios") {
+    console.log("Push iOS full trigger:", JSON.stringify(trigger));
+    console.log("Push iOS full content.data:", JSON.stringify(content.data));
+  }
+
+  // 1. Ubicación estándar: content.data (funciona en Android/FCM)
+  let deeplink = content.data?.deeplink;
+
+  // 2. iOS: los datos custom de APNs están en trigger.payload (fuera de aps)
+  if (!deeplink && trigger?.payload) {
+    deeplink = trigger.payload.deeplink;
+  }
+
+  // 3. iOS: buscar dentro de aps también por si acaso
+  if (!deeplink && trigger?.payload?.aps) {
+    deeplink = trigger.payload.aps.deeplink;
+  }
+
+  // 4. iOS: expo-notifications puede wrappear en body
+  if (!deeplink && trigger?.payload?.body) {
+    try {
+      const body = typeof trigger.payload.body === "string"
+        ? JSON.parse(trigger.payload.body)
+        : trigger.payload.body;
+      deeplink = body?.deeplink;
+    } catch (_e) {}
+  }
+
+  // 5. Fallback: remoteMessage (algunas versiones de expo-notifications)
+  if (!deeplink && trigger?.remoteMessage?.data) {
+    deeplink = trigger.remoteMessage.data.deeplink;
+  }
+
+  // Limpiar
+  if (deeplink && typeof deeplink === "string") {
+    deeplink = deeplink.trim();
+  } else {
+    deeplink = null;
+  }
+
+  console.log("Push extractDeeplink result:", deeplink);
+  return deeplink;
+}
+
 // Componente interno que maneja las notificaciones después de que auth esté listo
 function NotificationHandler() {
   const router = useRouter();
   const { isReady, isAuthenticated } = useAuth();
   const notificationListener = useRef(null);
   const responseListener = useRef(null);
-  const pendingDeeplink = useRef(null);
   const hasHandledInitial = useRef(false);
+  const [pendingDeeplink, setPendingDeeplink] = useState(null);
 
-  // Navegar al deeplink pendiente cuando auth esté listo
+  // Refs para acceder al estado actual de auth sin recrear el listener
+  const isReadyRef = useRef(isReady);
+  const isAuthenticatedRef = useRef(isAuthenticated);
+  const routerRef = useRef(router);
+  useEffect(() => { isReadyRef.current = isReady; }, [isReady]);
+  useEffect(() => { isAuthenticatedRef.current = isAuthenticated; }, [isAuthenticated]);
+  useEffect(() => { routerRef.current = router; }, [router]);
+
+  // Función de navegación reutilizable
+  const navigateToDeeplink = useCallback(async (deeplink) => {
+    if (!deeplink) return;
+    console.log("Navigating to deeplink:", deeplink);
+
+    const delay = Platform.OS === "ios" ? 1500 : 800;
+    await new Promise((resolve) => setTimeout(resolve, delay));
+
+    const attemptNavigation = (attempt = 1) => {
+      try {
+        console.log(`Navigation attempt ${attempt}:`, deeplink);
+        routerRef.current.push(deeplink);
+      } catch (error) {
+        console.error(`Navigation attempt ${attempt} failed:`, error);
+        if (attempt < 3) {
+          setTimeout(() => attemptNavigation(attempt + 1), 1000);
+        }
+      }
+    };
+
+    attemptNavigation();
+  }, []);
+
+  // Procesar deeplink pendiente cuando auth esté listo
   useEffect(() => {
-    if (isReady && isAuthenticated && pendingDeeplink.current) {
-      const navigateToDeeplink = async () => {
-        const deeplink = pendingDeeplink.current;
-        pendingDeeplink.current = null;
-
-        console.log("🚀 Auth ready, processing pending deeplink:", deeplink);
-
-        // Esperar más tiempo en iOS para que tabs/_layout.js cargue servicesLoaded
-        // y el layout esté completamente montado
-        const delay = Platform.OS === "ios" ? 2000 : 800;
-        await new Promise(resolve => setTimeout(resolve, delay));
-
-        const attemptNavigation = (attempt = 1) => {
-          try {
-            console.log(`🔀 Attempt ${attempt} to navigate to:`, deeplink);
-            router.push(deeplink);
-            console.log("✅ Pending deeplink navigation succeeded");
-          } catch (error) {
-            console.error(`❌ Deeplink navigation attempt ${attempt} failed:`, error);
-            if (attempt < 3) {
-              setTimeout(() => attemptNavigation(attempt + 1), 1500);
-            }
-          }
-        };
-
-        attemptNavigation();
-      };
-
-      navigateToDeeplink();
+    if (isReady && isAuthenticated && pendingDeeplink) {
+      const deeplink = pendingDeeplink;
+      setPendingDeeplink(null);
+      navigateToDeeplink(deeplink);
     }
-  }, [isReady, isAuthenticated, router]);
+  }, [isReady, isAuthenticated, pendingDeeplink, navigateToDeeplink]);
 
+  // Listener estable: se crea una sola vez, usa refs para auth
   useEffect(() => {
-    // Solo configurar listeners de notificaciones en plataformas nativas
-    if (Platform.OS !== "web") {
-      notificationListener.current =
-        Notifications.addNotificationReceivedListener(() => {});
+    if (Platform.OS === "web") return;
 
-      responseListener.current =
-        Notifications.addNotificationResponseReceivedListener((response) => {
-          const data = response.notification.request.content.data;
-          let deeplink = data?.deeplink;
-          console.log("📱 Notification clicked, deeplink:", deeplink);
+    notificationListener.current =
+      Notifications.addNotificationReceivedListener(() => {});
 
-          // Validar y limpiar el deeplink
-          if (deeplink && typeof deeplink === 'string') {
-            deeplink = deeplink.trim();
-            console.log("✓ Valid deeplink format");
-          } else {
-            console.warn("⚠️ Invalid deeplink:", deeplink);
-            return;
-          }
+    responseListener.current =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        let deeplink = extractDeeplink(response);
 
-          if (deeplink) {
-            // Si auth está listo y autenticado, navegar con delay para iOS
-            if (isReady && isAuthenticated) {
-              const delay = Platform.OS === "ios" ? 1500 : 500;
-              console.log(`⏱️ Waiting ${delay}ms before navigation...`);
-              setTimeout(() => {
-                try {
-                  console.log("🔀 Attempting navigation to:", deeplink);
-                  router.push(deeplink);
-                  console.log("✅ Navigation succeeded");
-                } catch (error) {
-                  console.error("❌ Error navigating from notification:", error);
-                  // Reintento
-                  setTimeout(() => {
-                    try {
-                      console.log("🔄 Retrying navigation to:", deeplink);
-                      router.push(deeplink);
-                    } catch (e) {
-                      console.error("❌ Retry failed:", e);
-                    }
-                  }, 1000);
-                }
-              }, delay);
-            } else {
-              // Guardar para navegar cuando esté listo
-              console.log("⏸️ Auth not ready, saving deeplink for later");
-              pendingDeeplink.current = deeplink;
-            }
-          }
-        });
-    }
+        // Fallback: si no hay deeplink, llevar a notificaciones
+        if (!deeplink) {
+          console.warn("No deeplink found, falling back to notifications tab");
+          deeplink = "/(app)/tabs/notificaciones";
+        }
+
+        if (isReadyRef.current && isAuthenticatedRef.current) {
+          navigateToDeeplink(deeplink);
+        } else {
+          setPendingDeeplink(deeplink);
+        }
+      });
 
     return () => {
       if (notificationListener.current) {
@@ -112,35 +141,31 @@ function NotificationHandler() {
         );
       }
       if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
+        Notifications.removeNotificationSubscription(
+          responseListener.current,
+        );
       }
     };
-  }, [router, isReady, isAuthenticated]);
+  }, [navigateToDeeplink]);
 
-  // Manejar notificación inicial (app abierta desde notificación)
+  // Manejar notificación inicial (cold start)
   useEffect(() => {
     async function handleInitialNotification() {
-      // Solo manejar una vez y en plataformas nativas
       if (Platform.OS === "web" || hasHandledInitial.current) return;
 
-      console.log("🔍 Checking for initial notification...");
       const response = await Notifications.getLastNotificationResponseAsync();
       if (response) {
-        const deeplink = response.notification.request.content.data?.deeplink;
-        console.log("📬 Initial notification found, deeplink:", deeplink);
-        if (deeplink) {
-          hasHandledInitial.current = true;
-          // Guardar siempre como pendiente para navegar cuando todo esté listo
-          // Esto es más fiable en iOS donde la app arranca desde cero
-          pendingDeeplink.current = deeplink;
-          console.log("💾 Saved initial deeplink as pending");
+        let deeplink = extractDeeplink(response);
+        if (!deeplink) {
+          deeplink = "/(app)/tabs/notificaciones";
         }
-      } else {
-        console.log("📭 No initial notification found");
+        hasHandledInitial.current = true;
+        setPendingDeeplink(deeplink);
+        console.log("Initial notification deeplink:", deeplink);
       }
     }
     handleInitialNotification();
-  }, [router, isReady, isAuthenticated]);
+  }, []);
 
   return null;
 }

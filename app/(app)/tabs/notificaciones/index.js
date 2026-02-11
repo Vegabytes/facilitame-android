@@ -116,14 +116,14 @@ export default function NotificacionesScreen() {
             onPress={async () => {
               try {
                 // Marcar como leída según el tipo
-                if (item.type === "communication") {
+                if (item.type === "communication" && item.communication_id) {
                   await fetchWithAuth("app-communication-mark-read", {
                     communication_id: item.communication_id,
-                  });
+                  }, { silent: true });
                 } else {
                   await fetchWithAuth("app-notification-mark-read", {
                     notification_id: item.id,
-                  });
+                  }, { silent: true });
                 }
               } catch (err) {
                 console.error(

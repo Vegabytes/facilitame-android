@@ -10,6 +10,9 @@
     },
     "preview": {
       "distribution": "internal",
+      "env": {
+        "EAS_NO_ASSOCIATED_DOMAINS": "1"
+      },
       "android": {
         "buildType": "apk"
       },
