@@ -283,6 +283,8 @@ export default function FormAutonomoScreen() {
           onChangeText={(value) => updateField("email", value)}
           autoCapitalize="none"
           keyboardType="email-address"
+          textContentType="emailAddress"
+          autoComplete="email"
           error={errors.email}
         />
 
@@ -291,6 +293,8 @@ export default function FormAutonomoScreen() {
           value={formData.password}
           onChangeText={(value) => updateField("password", value)}
           secureTextEntry
+          textContentType="newPassword"
+          autoComplete="new-password"
           error={errors.password}
         />
 
@@ -299,6 +303,8 @@ export default function FormAutonomoScreen() {
           value={formData.confirmPassword}
           onChangeText={(value) => updateField("confirmPassword", value)}
           secureTextEntry
+          textContentType="newPassword"
+          autoComplete="new-password"
           error={errors.confirmPassword}
         />
 

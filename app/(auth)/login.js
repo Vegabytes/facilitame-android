@@ -142,6 +142,9 @@ export default function LoginScreen() {
         }}
         autoCapitalize="none"
         keyboardType="email-address"
+        textContentType="emailAddress"
+        autoComplete="email"
+        importantForAutofill="yes"
         error={errors.email}
       />
 
@@ -153,6 +156,9 @@ export default function LoginScreen() {
           if (errors.password) setErrors({ ...errors, password: null });
         }}
         secureTextEntry
+        textContentType="password"
+        autoComplete="password"
+        importantForAutofill="yes"
         error={errors.password}
       />
 

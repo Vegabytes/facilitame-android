@@ -1,6 +1,7 @@
 import { Tabs, Redirect } from "expo-router";
-import { Image, View } from "react-native";
+import { Image, View, Platform } from "react-native";
 import { useEffect, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../../context/AuthContext";
 import { usePathname } from "expo-router";
 
@@ -33,6 +34,7 @@ function TabIcon({ source, sourceActive, focused }) {
 export default function TabsLayout() {
   const { hasServicesEnabled, hasAdvisory, isGuest, refreshServicesStatus, isReady } = useAuth();
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
 
   const [servicesLoaded, setServicesLoaded] = useState(false);
 
@@ -75,16 +77,17 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: "#FFFFFF",
-          height: 60,
-          paddingTop: 10,
-          paddingBottom: 10,
+          height: 65 + Math.max(insets.bottom, 5),
+          paddingTop: 8,
+          paddingBottom: Math.max(insets.bottom, 8),
         },
         tabBarIconStyle: {
           marginTop: 0,
         },
         tabBarLabelStyle: {
-          marginTop: 3,
+          marginTop: 2,
           marginBottom: 0,
+          fontSize: 10,
           fontWeight: "bold",
           color: "black",
         },

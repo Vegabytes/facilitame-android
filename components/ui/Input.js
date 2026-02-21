@@ -20,6 +20,9 @@ export default function Input({
   numberOfLines = 1,
   editable = true,
   className = "",
+  textContentType,
+  autoComplete,
+  importantForAutofill,
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const borderClass = error ? "border-red-500" : "border-bright";
@@ -41,6 +44,9 @@ export default function Input({
           secureTextEntry={isSecure}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
+          textContentType={textContentType}
+          autoComplete={autoComplete}
+          importantForAutofill={importantForAutofill}
           multiline={multiline}
           numberOfLines={numberOfLines}
           editable={editable}

@@ -37,11 +37,11 @@ const TYPES = [
   },
 ];
 
-const DEPARTMENTS = [
-  { value: "contabilidad", label: "📊 Contabilidad" },
-  { value: "fiscalidad", label: "📋 Fiscalidad" },
-  { value: "laboral", label: "👥 Laboral" },
-  { value: "gestion", label: "📁 Gestión" },
+const DEFAULT_DEPARTMENTS = [
+  { value: "contabilidad", label: "Contabilidad" },
+  { value: "fiscalidad", label: "Fiscalidad" },
+  { value: "laboral", label: "Laboral" },
+  { value: "gestion", label: "Gestión" },
 ];
 
 export default function NuevaCitaScreen() {
@@ -49,6 +49,8 @@ export default function NuevaCitaScreen() {
   const [loading, setLoading] = useState(false);
   const [advisoryId, setAdvisoryId] = useState(null);
   const [advisoryName, setAdvisoryName] = useState("");
+
+  const [departments, setDepartments] = useState(DEFAULT_DEPARTMENTS);
 
   // Form fields
   const [type, setType] = useState("");
@@ -62,7 +64,7 @@ export default function NuevaCitaScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
 
-  // Cargar datos de asesoría
+  // Cargar datos de asesoría y departamentos
   useFocusEffect(
     useCallback(() => {
       const loadAdvisory = async () => {
@@ -75,6 +77,15 @@ export default function NuevaCitaScreen() {
           if (response?.status === "ok" && response.data?.has_advisory) {
             setAdvisoryId(response.data.advisory.id);
             setAdvisoryName(response.data.advisory.name);
+            // Departments come in the same response
+            if (response.data.departments?.length > 0) {
+              setDepartments(
+                response.data.departments.map((d) => ({
+                  value: d.slug,
+                  label: d.name,
+                })),
+              );
+            }
           } else {
             Alert.alert("Error", "No tienes asesoría vinculada");
             router.back();
@@ -83,6 +94,7 @@ export default function NuevaCitaScreen() {
           router.back();
         }
       };
+
       loadAdvisory();
     }, [router]),
   );
@@ -309,7 +321,7 @@ export default function NuevaCitaScreen() {
               </Text>
             )}
             <View className="flex-row flex-wrap gap-2">
-              {DEPARTMENTS.map((d) => (
+              {departments.map((d) => (
                 <TouchableOpacity
                   key={d.value}
                   className={`px-4 py-3 rounded-xl border-2 ${

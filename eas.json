@@ -10,9 +10,6 @@
     },
     "preview": {
       "distribution": "internal",
-      "env": {
-        "EAS_NO_ASSOCIATED_DOMAINS": "1"
-      },
       "android": {
         "buildType": "apk"
       },
@@ -21,7 +18,10 @@
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      }
     }
   },
   "submit": {

@@ -10,9 +10,12 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Linking,
+  Alert,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
-import { fetchWithAuth } from "../../../../utils/api";
+import { fetchWithAuth, getAuthToken } from "../../../../utils/api";
+import { API_URL } from "../../../../utils/constants";
 
 const CONTRACT_TYPES = {
   indefinido: "Indefinido",
@@ -101,8 +104,24 @@ export default function ContratosScreen() {
       const statusConf = STATUS_CONFIG[item.status] || STATUS_CONFIG.activo;
       const typeName = CONTRACT_TYPES[item.contract_type] || item.contract_type;
 
+      const openFile = async () => {
+        if (!item.first_file_id) {
+          Alert.alert("Sin documento", "Este contrato no tiene documento adjunto");
+          return;
+        }
+        try {
+          const token = await getAuthToken();
+          const url = `${API_URL}/file-download?type=advisory_contract_file&id=${item.first_file_id}&auth_token=${token}`;
+          await Linking.openURL(url);
+        } catch (_error) {
+          Alert.alert("Error", "No se pudo abrir el archivo");
+        }
+      };
+
       return (
-        <View
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={openFile}
           className={`bg-white p-4 rounded-xl mb-3 border-l-4 ${
             item.status === "activo"
               ? "border-green-500"
@@ -144,8 +163,16 @@ export default function ContratosScreen() {
                 {formatCurrency(item.salary_gross)}/año
               </Text>
             )}
+
+            {item.files_count > 0 && (
+              <View className="bg-cyan-100 px-2 py-1 rounded-full">
+                <Text className="text-xs font-medium text-cyan-700">
+                  📎 {item.files_count} doc(s)
+                </Text>
+              </View>
+            )}
           </View>
-        </View>
+        </TouchableOpacity>
       );
     },
     [],

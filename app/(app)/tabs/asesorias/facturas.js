@@ -1,5 +1,6 @@
 /**
- * Pantalla de facturas enviadas a la asesoría
+ * Pantalla de facturas: enviadas a la asesoría + facturas emitidas
+ * Dos pestañas: "Enviadas" (documentos subidos) y "Emitidas" (facturas creadas)
  */
 
 import { useState, useCallback, useMemo, useEffect } from "react";
@@ -14,6 +15,7 @@ import {
   Alert,
   Linking,
   TextInput,
+  ScrollView,
   ActionSheetIOS,
   Platform,
 } from "react-native";
@@ -34,9 +36,21 @@ const TAGS = {
   otros: "Otros",
 };
 
+const STATUS_CONFIG = {
+  borrador: { label: "Borrador", bg: "bg-gray-100", text: "text-gray-700" },
+  emitida: { label: "Emitida", bg: "bg-blue-100", text: "text-blue-700" },
+  pagada: { label: "Pagada", bg: "bg-green-100", text: "text-green-700" },
+  anulada: { label: "Anulada", bg: "bg-red-100", text: "text-red-700" },
+};
+
 export default function FacturasScreen() {
   const router = useRouter();
   const { autoUpload } = useLocalSearchParams();
+
+  // Tab: "enviadas" o "emitidas"
+  const [activeTab, setActiveTab] = useState("enviadas");
+
+  // --- Enviadas (documentos subidos) ---
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [autoUploadTriggered, setAutoUploadTriggered] = useState(false);
@@ -53,6 +67,13 @@ export default function FacturasScreen() {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [customNames, setCustomNames] = useState({});
 
+  // --- Emitidas (facturas creadas) ---
+  const [issuedInvoices, setIssuedInvoices] = useState([]);
+  const [issuedLoading, setIssuedLoading] = useState(false);
+  const [issuedStats, setIssuedStats] = useState(null);
+  const [issuedFilter, setIssuedFilter] = useState("all");
+
+  // Load enviadas
   const loadInvoices = useCallback(async () => {
     try {
       const params = { limit: 50 };
@@ -77,20 +98,43 @@ export default function FacturasScreen() {
     }
   }, [filter]);
 
+  // Load emitidas
+  const loadIssuedInvoices = useCallback(async () => {
+    setIssuedLoading(true);
+    try {
+      const params = { limit: 50 };
+      if (issuedFilter !== "all") {
+        params.status = issuedFilter;
+      }
+
+      const response = await fetchWithAuth("app-advisory-issued-invoices", params, {
+        silent: true,
+      });
+
+      if (response?.status === "ok") {
+        setIssuedInvoices(response.data?.invoices || []);
+        setIssuedStats(response.data?.stats || null);
+      }
+    } catch (_error) {
+      // Silenciar
+    } finally {
+      setIssuedLoading(false);
+    }
+  }, [issuedFilter]);
+
   useFocusEffect(
     useCallback(() => {
       loadInvoices();
-    }, [loadInvoices]),
+      loadIssuedInvoices();
+    }, [loadInvoices, loadIssuedInvoices]),
   );
 
   // Auto-abrir modal de envío si viene con autoUpload=true
   useEffect(() => {
     if (autoUpload === "true" && canSend && !loading && !autoUploadTriggered) {
       setAutoUploadTriggered(true);
-      // Pequeño delay para que la UI esté lista, luego abrir modal Y selector de fuente
       setTimeout(() => {
         setModalVisible(true);
-        // Abrir directamente el selector de cámara/galería/documento
         setTimeout(() => {
           showSourcePicker();
         }, 300);
@@ -98,7 +142,6 @@ export default function FacturasScreen() {
     }
   }, [autoUpload, canSend, loading, autoUploadTriggered]);
 
-  // Picker específico para autoUpload (con loading)
   const pickDocumentAuto = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
@@ -121,8 +164,12 @@ export default function FacturasScreen() {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    loadInvoices();
-  }, [loadInvoices]);
+    if (activeTab === "enviadas") {
+      loadInvoices();
+    } else {
+      loadIssuedInvoices().finally(() => setRefreshing(false));
+    }
+  }, [activeTab, loadInvoices, loadIssuedInvoices]);
 
   const formatDate = (dateString) => {
     if (!dateString) return "";
@@ -165,7 +212,7 @@ export default function FacturasScreen() {
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ["Cancelar", "Tomar foto", "Elegir de galería", "Seleccionar documento"],
+          options: ["Cancelar", "Tomar foto", "Elegir de galeria", "Seleccionar documento"],
           cancelButtonIndex: 0,
         },
         (buttonIndex) => {
@@ -187,7 +234,7 @@ export default function FacturasScreen() {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("Permiso denegado", "Necesitamos acceso a la cámara para tomar fotos");
+        Alert.alert("Permiso denegado", "Necesitamos acceso a la camara para tomar fotos");
         return;
       }
 
@@ -214,7 +261,7 @@ export default function FacturasScreen() {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("Permiso denegado", "Necesitamos acceso a la galería para seleccionar fotos");
+        Alert.alert("Permiso denegado", "Necesitamos acceso a la galeria para seleccionar fotos");
         return;
       }
 
@@ -233,7 +280,7 @@ export default function FacturasScreen() {
         setSelectedFiles((prev) => [...prev, ...newFiles]);
       }
     } catch (_error) {
-      Alert.alert("Error", "No se pudieron seleccionar las imágenes");
+      Alert.alert("Error", "No se pudieron seleccionar las imagenes");
     }
   };
 
@@ -270,7 +317,6 @@ export default function FacturasScreen() {
           name: file.name,
           type: file.mimeType || "application/octet-stream",
         });
-        // Añadir nombre personalizado si existe
         const displayName = customNames[index] || file.name;
         formData.append("custom_names[]", displayName);
       });
@@ -305,6 +351,149 @@ export default function FacturasScreen() {
     }
   };
 
+  // Abrir PDF de factura emitida
+  const openIssuedInvoicePdf = async (invoice) => {
+    try {
+      const token = await getAuthToken();
+      const url = `${API_URL}/file-download?type=issued_invoice&id=${invoice.id}&auth_token=${token}`;
+      await Linking.openURL(url);
+    } catch (_error) {
+      Alert.alert("Error", "No se pudo abrir el PDF de la factura");
+    }
+  };
+
+  // Cambiar estado de factura (emitida → pagada/anulada)
+  const changeInvoiceStatus = async (invoice, newStatus) => {
+    const statusLabels = { pagada: "pagada", anulada: "anulada" };
+    Alert.alert(
+      "Cambiar estado",
+      `Marcar factura ${invoice.invoice_number} como ${statusLabels[newStatus]}?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Confirmar",
+          onPress: async () => {
+            try {
+              const formData = new FormData();
+              formData.append("action", "update_status");
+              formData.append("invoice_id", invoice.id);
+              formData.append("status", newStatus);
+
+              const response = await fetchWithAuth(
+                "advisory-issued-invoice-emit",
+                formData,
+                { isFormData: true },
+              );
+
+              if (response?.status === "ok") {
+                Alert.alert("Estado actualizado", response.message_plain || `Factura marcada como ${statusLabels[newStatus]}`);
+                loadIssuedInvoices();
+              } else {
+                Alert.alert("Error", response?.message_plain || "No se pudo actualizar el estado");
+              }
+            } catch (_error) {
+              Alert.alert("Error", "Error de conexion");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Mostrar opciones al pulsar factura emitida
+  const showIssuedInvoiceOptions = (invoice) => {
+    if (invoice.status === "borrador") {
+      emitDraft(invoice);
+      return;
+    }
+
+    const options = ["Ver factura"];
+    const actions = [() => openIssuedInvoicePdf(invoice)];
+
+    if (invoice.status === "emitida") {
+      options.push("Marcar como pagada");
+      actions.push(() => changeInvoiceStatus(invoice, "pagada"));
+    }
+
+    if (invoice.status === "emitida" || invoice.status === "borrador") {
+      options.push("Anular factura");
+      actions.push(() => changeInvoiceStatus(invoice, "anulada"));
+    }
+
+    options.push("Cancelar");
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex: options.length - 1,
+          destructiveButtonIndex: options.indexOf("Anular factura"),
+        },
+        (buttonIndex) => {
+          if (buttonIndex < actions.length) {
+            actions[buttonIndex]();
+          }
+        }
+      );
+    } else {
+      // Android: use Alert with buttons (max 3)
+      const alertButtons = [];
+      if (invoice.status === "emitida") {
+        alertButtons.push({
+          text: "Marcar pagada",
+          onPress: () => changeInvoiceStatus(invoice, "pagada"),
+        });
+      }
+      alertButtons.push({
+        text: "Ver factura",
+        onPress: () => openIssuedInvoicePdf(invoice),
+      });
+      alertButtons.push({ text: "Cerrar", style: "cancel" });
+
+      Alert.alert(
+        invoice.invoice_number || "Factura",
+        `${invoice.client_name} - ${invoice.total_formatted}`,
+        alertButtons,
+      );
+    }
+  };
+
+  // Emitir borrador
+  const emitDraft = async (invoice) => {
+    Alert.alert(
+      "Emitir factura",
+      `Emitir la factura por ${invoice.total_formatted} a ${invoice.client_name}?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Emitir",
+          onPress: async () => {
+            try {
+              const formData = new FormData();
+              formData.append("invoice_id", invoice.id);
+
+              const response = await fetchWithAuth(
+                "advisory-issued-invoice-emit",
+                formData,
+                { isFormData: true },
+              );
+
+              if (response?.status === "ok") {
+                Alert.alert("Factura emitida", response.message_plain || "Factura emitida correctamente");
+                loadIssuedInvoices();
+              } else {
+                Alert.alert("Error", response?.message_plain || "No se pudo emitir");
+              }
+            } catch (_error) {
+              Alert.alert("Error", "Error de conexion");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Render enviada (documento subido)
   const renderInvoice = useCallback(({ item }) => {
     const isGasto = item.type === "gasto";
 
@@ -329,7 +518,6 @@ export default function FacturasScreen() {
         </View>
 
         <View className="flex-row items-center flex-wrap gap-2">
-          {/* Tipo */}
           <View
             className={`px-2 py-1 rounded-full ${
               isGasto ? "bg-red-100" : "bg-green-100"
@@ -344,7 +532,6 @@ export default function FacturasScreen() {
             </Text>
           </View>
 
-          {/* Estado */}
           <View
             className={`px-2 py-1 rounded-full ${
               item.is_processed ? "bg-green-100" : "bg-amber-100"
@@ -359,14 +546,12 @@ export default function FacturasScreen() {
             </Text>
           </View>
 
-          {/* Tag */}
           {item.tag && TAGS[item.tag] && (
             <View className="bg-gray-100 px-2 py-1 rounded-full">
               <Text className="text-xs text-gray-600">{TAGS[item.tag]}</Text>
             </View>
           )}
 
-          {/* Size */}
           {item.file_size > 0 && (
             <Text className="text-gray-400 text-xs">
               {formatFileSize(item.file_size)}
@@ -377,12 +562,74 @@ export default function FacturasScreen() {
     );
   }, []);
 
-  const keyExtractor = useCallback((item) => item.id.toString(), []);
+  // Render emitida (factura creada)
+  const renderIssuedInvoice = useCallback(({ item }) => {
+    const statusCfg = STATUS_CONFIG[item.status] || STATUS_CONFIG.borrador;
+    const isDraft = item.status === "borrador";
 
-  const ListHeaderComponent = useMemo(
+    return (
+      <TouchableOpacity
+        className={`bg-white p-4 rounded-xl mb-3 border-l-4 ${
+          isDraft ? "border-gray-400" : item.status === "pagada" ? "border-green-500" : item.status === "anulada" ? "border-red-500" : "border-blue-500"
+        }`}
+        onPress={() => showIssuedInvoiceOptions(item)}
+        activeOpacity={0.7}
+        accessibilityLabel={`Factura ${item.invoice_number}`}
+        accessibilityRole="button"
+      >
+        <View className="flex-row items-start justify-between mb-2">
+          <View className="flex-1 mr-2">
+            <Text className="font-bold text-base" numberOfLines={1}>
+              {isDraft ? "Borrador" : item.invoice_number}
+            </Text>
+            <Text className="text-gray-500 text-sm" numberOfLines={1}>
+              {item.client_name}
+            </Text>
+          </View>
+          <View className="items-end">
+            <Text className="font-bold text-base text-primary">
+              {item.total_formatted}
+            </Text>
+            <Text className="text-gray-400 text-xs">
+              {item.invoice_date_formatted}
+            </Text>
+          </View>
+        </View>
+
+        <View className="flex-row items-center flex-wrap gap-2">
+          <View className={`px-2 py-1 rounded-full ${statusCfg.bg}`}>
+            <Text className={`text-xs font-medium ${statusCfg.text}`}>
+              {statusCfg.label}
+            </Text>
+          </View>
+
+          {isDraft && (
+            <Text className="text-primary text-xs font-medium">
+              Pulsa para emitir
+            </Text>
+          )}
+
+          {!isDraft && (
+            <Text className="text-gray-400 text-xs font-medium">
+              Pulsa para opciones
+            </Text>
+          )}
+
+          {item.client_nif && (
+            <Text className="text-gray-400 text-xs">{item.client_nif}</Text>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  }, []);
+
+  const keyExtractor = useCallback((item) => item.id.toString(), []);
+  const issuedKeyExtractor = useCallback((item) => `issued-${item.id}`, []);
+
+  // Header for enviadas tab
+  const EnviadasHeader = useMemo(
     () => (
       <View className="mb-4">
-        {/* Stats */}
         {stats && (
           <View className="flex-row gap-3 mb-4">
             <View className="flex-1 bg-white p-3 rounded-xl items-center">
@@ -406,60 +653,93 @@ export default function FacturasScreen() {
           </View>
         )}
 
-        {/* Filtros */}
         <View className="flex-row mb-4 gap-2">
-          <TouchableOpacity
-            className={`px-4 py-2 rounded-full ${
-              filter === "all" ? "bg-primary" : "bg-white"
-            }`}
-            onPress={() => setFilter("all")}
-            accessibilityLabel="Mostrar todas"
-            accessibilityRole="button"
-          >
-            <Text
-              className={`font-medium ${
-                filter === "all" ? "text-white" : "text-gray-600"
+          {["all", "gasto", "ingreso"].map((f) => (
+            <TouchableOpacity
+              key={f}
+              className={`px-4 py-2 rounded-full ${
+                filter === f ? "bg-primary" : "bg-white"
               }`}
+              onPress={() => setFilter(f)}
             >
-              Todas
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className={`px-4 py-2 rounded-full ${
-              filter === "gasto" ? "bg-primary" : "bg-white"
-            }`}
-            onPress={() => setFilter("gasto")}
-            accessibilityLabel="Mostrar gastos"
-            accessibilityRole="button"
-          >
-            <Text
-              className={`font-medium ${
-                filter === "gasto" ? "text-white" : "text-gray-600"
-              }`}
-            >
-              Gastos
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className={`px-4 py-2 rounded-full ${
-              filter === "ingreso" ? "bg-primary" : "bg-white"
-            }`}
-            onPress={() => setFilter("ingreso")}
-            accessibilityLabel="Mostrar ingresos"
-            accessibilityRole="button"
-          >
-            <Text
-              className={`font-medium ${
-                filter === "ingreso" ? "text-white" : "text-gray-600"
-              }`}
-            >
-              Ingresos
-            </Text>
-          </TouchableOpacity>
+              <Text
+                className={`font-medium ${
+                  filter === f ? "text-white" : "text-gray-600"
+                }`}
+              >
+                {f === "all" ? "Todas" : f === "gasto" ? "Gastos" : "Ingresos"}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
     ),
     [stats, filter],
+  );
+
+  // Header for emitidas tab
+  const EmitidasHeader = useMemo(
+    () => (
+      <View className="mb-4">
+        {issuedStats && (
+          <View className="flex-row gap-3 mb-4">
+            <View className="flex-1 bg-white p-3 rounded-xl items-center">
+              <Text className="text-2xl font-bold text-primary">
+                {issuedStats.total || 0}
+              </Text>
+              <Text className="text-gray-500 text-xs">Total</Text>
+            </View>
+            <View className="flex-1 bg-white p-3 rounded-xl items-center">
+              <Text className="text-2xl font-bold text-gray-500">
+                {issuedStats.borradores || 0}
+              </Text>
+              <Text className="text-gray-500 text-xs">Borradores</Text>
+            </View>
+            <View className="flex-1 bg-white p-3 rounded-xl items-center">
+              <Text className="text-2xl font-bold text-green-500">
+                {issuedStats.pagadas || 0}
+              </Text>
+              <Text className="text-gray-500 text-xs">Pagadas</Text>
+            </View>
+          </View>
+        )}
+
+        {issuedStats?.importe_total && (
+          <View className="bg-white p-3 rounded-xl items-center mb-4">
+            <Text className="text-gray-500 text-xs">Importe total</Text>
+            <Text className="text-xl font-bold text-primary">
+              {issuedStats.importe_total}
+            </Text>
+          </View>
+        )}
+
+        <View className="flex-row mb-4 gap-2 flex-wrap">
+          {[
+            { key: "all", label: "Todas" },
+            { key: "borrador", label: "Borradores" },
+            { key: "emitida", label: "Emitidas" },
+            { key: "pagada", label: "Pagadas" },
+          ].map((f) => (
+            <TouchableOpacity
+              key={f.key}
+              className={`px-4 py-2 rounded-full ${
+                issuedFilter === f.key ? "bg-primary" : "bg-white"
+              }`}
+              onPress={() => setIssuedFilter(f.key)}
+            >
+              <Text
+                className={`font-medium ${
+                  issuedFilter === f.key ? "text-white" : "text-gray-600"
+                }`}
+              >
+                {f.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    ),
+    [issuedStats, issuedFilter],
   );
 
   if (loading || autoUploadLoading) {
@@ -490,7 +770,7 @@ export default function FacturasScreen() {
           <Text className="text-2xl font-extrabold text-button">
             Mis Facturas
           </Text>
-          {canSend && (
+          {activeTab === "enviadas" && canSend && (
             <TouchableOpacity
               className="bg-primary px-4 py-2 rounded-full"
               onPress={() => setModalVisible(true)}
@@ -500,48 +780,137 @@ export default function FacturasScreen() {
               <Text className="text-white font-semibold">+ Enviar</Text>
             </TouchableOpacity>
           )}
+          {activeTab === "emitidas" && (
+            <TouchableOpacity
+              className="bg-primary px-4 py-2 rounded-full"
+              onPress={() => router.push("/tabs/asesorias/emitir-factura")}
+              accessibilityLabel="Nueva factura"
+              accessibilityRole="button"
+            >
+              <Text className="text-white font-semibold">+ Nueva</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Tabs */}
+        <View className="flex-row bg-gray-100 rounded-xl p-1 mb-2">
+          <TouchableOpacity
+            className={`flex-1 py-2.5 rounded-lg items-center ${
+              activeTab === "enviadas" ? "bg-white shadow-sm" : ""
+            }`}
+            onPress={() => setActiveTab("enviadas")}
+          >
+            <Text
+              className={`font-medium ${
+                activeTab === "enviadas" ? "text-primary" : "text-gray-500"
+              }`}
+            >
+              Enviadas
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className={`flex-1 py-2.5 rounded-lg items-center ${
+              activeTab === "emitidas" ? "bg-white shadow-sm" : ""
+            }`}
+            onPress={() => setActiveTab("emitidas")}
+          >
+            <View className="flex-row items-center">
+              <Text
+                className={`font-medium ${
+                  activeTab === "emitidas" ? "text-primary" : "text-gray-500"
+                }`}
+              >
+                Emitidas
+              </Text>
+              {issuedStats?.borradores > 0 && (
+                <View className="bg-amber-500 rounded-full px-1.5 py-0.5 ml-1.5">
+                  <Text className="text-white text-[10px] font-bold">
+                    {issuedStats.borradores}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* Lista */}
-      <FlatList
-        data={invoices}
-        renderItem={renderInvoice}
-        keyExtractor={keyExtractor}
-        contentContainerStyle={{ padding: 20, paddingTop: 0 }}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        ListHeaderComponent={ListHeaderComponent}
-        ListEmptyComponent={
-          <View className="items-center py-10">
-            <Text className="text-5xl mb-4">📄</Text>
-            <Text className="text-gray-500 text-center text-lg">
-              {canSend
-                ? "No has enviado facturas aún"
-                : "El envío de facturas no está disponible"}
-            </Text>
-            {canSend && (
-              <TouchableOpacity
-                className="mt-4 bg-primary px-6 py-3 rounded-full"
-                onPress={() => setModalVisible(true)}
-                accessibilityLabel="Enviar primera factura"
-                accessibilityRole="button"
-              >
-                <Text className="text-white font-semibold">
-                  Enviar primera factura
-                </Text>
-              </TouchableOpacity>
-            )}
-            {!canSend && (
-              <Text className="text-gray-400 text-center mt-2 px-6">
-                Tu asesoría tiene el plan gratuito que no incluye esta función.
-                Contacta con ellos para más información.
+      {/* Tab content: Enviadas */}
+      {activeTab === "enviadas" && (
+        <FlatList
+          data={invoices}
+          renderItem={renderInvoice}
+          keyExtractor={keyExtractor}
+          contentContainerStyle={{ padding: 20, paddingTop: 10 }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          ListHeaderComponent={EnviadasHeader}
+          ListEmptyComponent={
+            <View className="items-center py-10">
+              <Text className="text-5xl mb-4">📄</Text>
+              <Text className="text-gray-500 text-center text-lg">
+                {canSend
+                  ? "No has enviado facturas aun"
+                  : "El envio de facturas no esta disponible"}
               </Text>
-            )}
-          </View>
-        }
-      />
+              {canSend && (
+                <TouchableOpacity
+                  className="mt-4 bg-primary px-6 py-3 rounded-full"
+                  onPress={() => setModalVisible(true)}
+                >
+                  <Text className="text-white font-semibold">
+                    Enviar primera factura
+                  </Text>
+                </TouchableOpacity>
+              )}
+              {!canSend && (
+                <Text className="text-gray-400 text-center mt-2 px-6">
+                  Tu asesoria tiene el plan gratuito que no incluye esta funcion.
+                  Contacta con ellos para mas informacion.
+                </Text>
+              )}
+            </View>
+          }
+        />
+      )}
+
+      {/* Tab content: Emitidas */}
+      {activeTab === "emitidas" && (
+        <>
+          {issuedLoading ? (
+            <View className="flex-1 items-center justify-center">
+              <ActivityIndicator size="large" color="#30D4D1" />
+            </View>
+          ) : (
+            <FlatList
+              data={issuedInvoices}
+              renderItem={renderIssuedInvoice}
+              keyExtractor={issuedKeyExtractor}
+              contentContainerStyle={{ padding: 20, paddingTop: 10 }}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }
+              ListHeaderComponent={EmitidasHeader}
+              ListEmptyComponent={
+                <View className="items-center py-10">
+                  <Text className="text-5xl mb-4">🧾</Text>
+                  <Text className="text-gray-500 text-center text-lg">
+                    No has emitido facturas aun
+                  </Text>
+                  <TouchableOpacity
+                    className="mt-4 bg-primary px-6 py-3 rounded-full"
+                    onPress={() => router.push("/tabs/asesorias/emitir-factura")}
+                  >
+                    <Text className="text-white font-semibold">
+                      Emitir primera factura
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              }
+            />
+          )}
+        </>
+      )}
 
       {/* Modal enviar factura */}
       <Modal
@@ -551,7 +920,6 @@ export default function FacturasScreen() {
         onRequestClose={() => setModalVisible(false)}
       >
         <View className="flex-1 bg-background">
-          {/* Modal Header */}
           <View className="bg-white p-4 border-b border-gray-100 flex-row items-center">
             <TouchableOpacity
               onPress={() => {
@@ -568,8 +936,7 @@ export default function FacturasScreen() {
             <Text className="font-bold text-lg flex-1">Enviar Factura</Text>
           </View>
 
-          <View className="flex-1 p-5">
-            {/* Selector de archivos */}
+          <ScrollView className="flex-1 p-5" keyboardShouldPersistTaps="handled">
             <TouchableOpacity
               className="border-2 border-dashed border-gray-300 rounded-xl p-6 items-center mb-5"
               onPress={showSourcePicker}
@@ -582,61 +949,61 @@ export default function FacturasScreen() {
               <Text className="font-semibold text-lg">
                 {selectedFiles.length > 0
                   ? `${selectedFiles.length} archivo(s) seleccionado(s)`
-                  : "Añadir archivos"}
+                  : "Anadir archivos"}
               </Text>
               <Text className="text-gray-500 text-center mt-1">
-                Cámara, galería o documento
+                Camara, galeria o documento
               </Text>
             </TouchableOpacity>
 
-            {/* Archivos seleccionados */}
             {selectedFiles.length > 0 && (
-              <View className="mb-5">
-                {selectedFiles.map((file, index) => (
-                  <View
-                    key={index}
-                    className="bg-white p-3 rounded-xl mb-2"
-                  >
-                    <View className="flex-row items-center mb-2">
-                      <Text className="text-xl mr-3">📄</Text>
-                      <Text className="flex-1 text-gray-400 text-xs" numberOfLines={1}>
-                        {file.name}
-                      </Text>
-                      <TouchableOpacity
-                        onPress={() => {
-                          setSelectedFiles((prev) =>
-                            prev.filter((_, i) => i !== index),
-                          );
-                          setCustomNames((prev) => {
-                            const newNames = { ...prev };
-                            delete newNames[index];
-                            return newNames;
-                          });
+              <View className="mb-5" style={{ maxHeight: 260 }}>
+                <ScrollView nestedScrollEnabled={true}>
+                  {selectedFiles.map((file, index) => (
+                    <View
+                      key={index}
+                      className="bg-white p-3 rounded-xl mb-2"
+                    >
+                      <View className="flex-row items-center mb-2">
+                        <Text className="text-xl mr-3">📄</Text>
+                        <Text className="flex-1 text-gray-400 text-xs" numberOfLines={1}>
+                          {file.name}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setSelectedFiles((prev) =>
+                              prev.filter((_, i) => i !== index),
+                            );
+                            setCustomNames((prev) => {
+                              const newNames = { ...prev };
+                              delete newNames[index];
+                              return newNames;
+                            });
+                          }}
+                          accessibilityLabel="Eliminar archivo"
+                          accessibilityRole="button"
+                        >
+                          <Text className="text-red-500">✕</Text>
+                        </TouchableOpacity>
+                      </View>
+                      <TextInput
+                        className="bg-gray-100 p-2 rounded-lg text-gray-800"
+                        placeholder="Nombre para mostrar"
+                        placeholderTextColor="#999"
+                        value={customNames[index] ?? file.name}
+                        onChangeText={(text) => {
+                          setCustomNames((prev) => ({
+                            ...prev,
+                            [index]: text,
+                          }));
                         }}
-                        accessibilityLabel="Eliminar archivo"
-                        accessibilityRole="button"
-                      >
-                        <Text className="text-red-500">✕</Text>
-                      </TouchableOpacity>
+                      />
                     </View>
-                    <TextInput
-                      className="bg-gray-100 p-2 rounded-lg text-gray-800"
-                      placeholder="Nombre para mostrar"
-                      placeholderTextColor="#999"
-                      value={customNames[index] ?? file.name}
-                      onChangeText={(text) => {
-                        setCustomNames((prev) => ({
-                          ...prev,
-                          [index]: text,
-                        }));
-                      }}
-                    />
-                  </View>
-                ))}
+                  ))}
+                </ScrollView>
               </View>
             )}
 
-            {/* Tipo */}
             <Text className="font-semibold mb-2">Tipo</Text>
             <View className="flex-row gap-3 mb-5">
               <TouchableOpacity
@@ -646,8 +1013,6 @@ export default function FacturasScreen() {
                     : "border-gray-200 bg-white"
                 }`}
                 onPress={() => setSelectedType("gasto")}
-                accessibilityLabel="Gasto"
-                accessibilityRole="button"
               >
                 <Text
                   className={`font-semibold ${
@@ -664,8 +1029,6 @@ export default function FacturasScreen() {
                     : "border-gray-200 bg-white"
                 }`}
                 onPress={() => setSelectedType("ingreso")}
-                accessibilityLabel="Ingreso"
-                accessibilityRole="button"
               >
                 <Text
                   className={`font-semibold ${
@@ -679,7 +1042,6 @@ export default function FacturasScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Etiqueta */}
             <Text className="font-semibold mb-2">Etiqueta (opcional)</Text>
             <View className="flex-row flex-wrap gap-2 mb-6">
               {Object.entries(TAGS).map(([key, label]) => (
@@ -689,8 +1051,6 @@ export default function FacturasScreen() {
                     selectedTag === key ? "bg-primary" : "bg-white"
                   }`}
                   onPress={() => setSelectedTag(selectedTag === key ? "" : key)}
-                  accessibilityLabel={label}
-                  accessibilityRole="button"
                 >
                   <Text
                     className={`font-medium ${
@@ -703,7 +1063,6 @@ export default function FacturasScreen() {
               ))}
             </View>
 
-            {/* Botón enviar */}
             <TouchableOpacity
               className={`p-4 rounded-xl items-center ${
                 uploading || selectedFiles.length === 0
@@ -712,8 +1071,6 @@ export default function FacturasScreen() {
               }`}
               onPress={uploadInvoice}
               disabled={uploading || selectedFiles.length === 0}
-              accessibilityLabel="Enviar factura"
-              accessibilityRole="button"
             >
               {uploading ? (
                 <ActivityIndicator color="#fff" />
@@ -723,11 +1080,11 @@ export default function FacturasScreen() {
                 </Text>
               )}
             </TouchableOpacity>
-          </View>
+          </ScrollView>
         </View>
       </Modal>
 
-      {/* Modal selección de fuente (Android) */}
+      {/* Modal seleccion de fuente (Android) */}
       <Modal
         visible={sourceModalVisible}
         transparent
@@ -754,7 +1111,7 @@ export default function FacturasScreen() {
               <Text className="text-2xl mr-4">📷</Text>
               <View className="flex-1">
                 <Text className="font-semibold">Tomar foto</Text>
-                <Text className="text-gray-500 text-sm">Usar la cámara</Text>
+                <Text className="text-gray-500 text-sm">Usar la camara</Text>
               </View>
             </TouchableOpacity>
 
@@ -767,7 +1124,7 @@ export default function FacturasScreen() {
             >
               <Text className="text-2xl mr-4">🖼️</Text>
               <View className="flex-1">
-                <Text className="font-semibold">Elegir de galería</Text>
+                <Text className="font-semibold">Elegir de galeria</Text>
                 <Text className="text-gray-500 text-sm">Seleccionar fotos existentes</Text>
               </View>
             </TouchableOpacity>

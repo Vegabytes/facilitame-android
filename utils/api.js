@@ -6,6 +6,7 @@
 import { Alert } from "react-native";
 import { API_URL, ERROR_MESSAGES } from "./constants";
 import { getAuthToken } from "./storage";
+export { getAuthToken };
 
 // Referencia global para logout (se establece desde AuthContext)
 let globalLogout = null;

@@ -91,8 +91,8 @@ android {
         applicationId 'com.boldsoftware.facilitameandroid'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 69
-        versionName "1.4.0"
+        versionCode 76
+        versionName "1.4.4"
     }
     signingConfigs {
         debug {
@@ -101,19 +101,15 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
-        release {
-            storeFile file('upload-keystore.jks')
-            storePassword '(wqvz@}2^sI2./eF+DQ.'
-            keyAlias 'facilitame'
-            keyPassword '(wqvz@}2^sI2./eF+DQ.'
-        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            signingConfig signingConfigs.release
+            // Caution! In production, you need to generate your own keystore file.
+            // see https://reactnative.dev/docs/signed-apk-android.
+            signingConfig signingConfigs.debug
             shrinkResources (findProperty('android.enableShrinkResourcesInReleaseBuilds')?.toBoolean() ?: false)
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"

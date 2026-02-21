@@ -141,6 +141,10 @@ export default function NotificacionesScreen() {
                 router.push("/(app)/tabs/asesorias/tu-asesor");
               } else if (item.type === "invoice") {
                 router.push("/(app)/tabs/asesorias/facturas");
+              } else if (item.type === "payroll") {
+                router.push("/(app)/tabs/asesorias/nominas");
+              } else if (item.type === "contract") {
+                router.push("/(app)/tabs/asesorias/contratos");
               } else if (item.request_id) {
                 router.push(
                   `/(app)/tabs/mis-solicitudes/solicitud?id=${item.request_id}`,
