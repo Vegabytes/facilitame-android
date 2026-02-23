@@ -66,8 +66,11 @@ export default function FacturasScreen() {
   const [selectedTag, setSelectedTag] = useState("");
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [customNames, setCustomNames] = useState({});
+  const [ocrData, setOcrData] = useState(null);
+  const [ocrLoading, setOcrLoading] = useState(false);
 
   // --- Emitidas (facturas creadas) ---
+  const [canEmit, setCanEmit] = useState(false);
   const [issuedInvoices, setIssuedInvoices] = useState([]);
   const [issuedLoading, setIssuedLoading] = useState(false);
   const [issuedStats, setIssuedStats] = useState(null);
@@ -125,6 +128,12 @@ export default function FacturasScreen() {
   useFocusEffect(
     useCallback(() => {
       loadInvoices();
+      // Check emit permission
+      fetchWithAuth("app-user-advisory", {}, { silent: true }).then((res) => {
+        if (res?.status === "ok") {
+          setCanEmit(res.data?.can_emit_invoices || false);
+        }
+      });
       loadIssuedInvoices();
     }, [loadInvoices, loadIssuedInvoices]),
   );
@@ -293,10 +302,46 @@ export default function FacturasScreen() {
       });
 
       if (!result.canceled && result.assets) {
-        setSelectedFiles((prev) => [...prev, ...result.assets]);
+        const newFiles = [...selectedFiles, ...result.assets];
+        setSelectedFiles(newFiles);
+        tryOcrDetection(newFiles);
       }
     } catch (_error) {
       Alert.alert("Error", "No se pudieron seleccionar los archivos");
+    }
+  };
+
+  const tryOcrDetection = async (files) => {
+    const pdfs = files.filter(
+      (f) => f.mimeType === "application/pdf" || f.name?.endsWith(".pdf"),
+    );
+    if (pdfs.length !== 1) {
+      setOcrData(null);
+      return;
+    }
+    setOcrLoading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", {
+        uri: pdfs[0].uri,
+        name: pdfs[0].name || "invoice.pdf",
+        type: "application/pdf",
+      });
+      const res = await fetchWithAuth("advisory-invoice-upload-ocr", fd, {
+        silent: true,
+      });
+      if (res?.status === "ok" && res.data?.fields) {
+        const f = res.data.fields;
+        if (f.total_amount || f.base_amount || f.issuer_name) {
+          setOcrData(f);
+        } else {
+          setOcrData(null);
+        }
+      }
+    } catch (_e) {
+      setOcrData(null);
+    } finally {
+      setOcrLoading(false);
     }
   };
 
@@ -340,6 +385,7 @@ export default function FacturasScreen() {
         setModalVisible(false);
         setSelectedFiles([]);
         setCustomNames({});
+        setOcrData(null);
         setSelectedType("gasto");
         setSelectedTag("");
         loadInvoices();
@@ -792,7 +838,8 @@ export default function FacturasScreen() {
           )}
         </View>
 
-        {/* Tabs */}
+        {/* Tabs - only show if canEmit */}
+        {canEmit && (
         <View className="flex-row bg-gray-100 rounded-xl p-1 mb-2">
           <TouchableOpacity
             className={`flex-1 py-2.5 rounded-lg items-center ${
@@ -832,6 +879,7 @@ export default function FacturasScreen() {
             </View>
           </TouchableOpacity>
         </View>
+        )}
       </View>
 
       {/* Tab content: Enviadas */}
@@ -926,6 +974,7 @@ export default function FacturasScreen() {
                 setModalVisible(false);
                 setSelectedFiles([]);
                 setCustomNames({});
+                setOcrData(null);
               }}
               className="mr-3"
               accessibilityLabel="Cerrar"
@@ -1001,6 +1050,48 @@ export default function FacturasScreen() {
                     </View>
                   ))}
                 </ScrollView>
+              </View>
+            )}
+
+            {/* OCR Detection */}
+            {ocrLoading && (
+              <View className="bg-blue-50 p-4 rounded-xl mb-5 flex-row items-center">
+                <ActivityIndicator size="small" color="#30D4D1" />
+                <Text className="ml-3 text-gray-600">
+                  Analizando factura con IA...
+                </Text>
+              </View>
+            )}
+            {ocrData && !ocrLoading && (
+              <View className="bg-blue-50 p-4 rounded-xl mb-5">
+                <Text className="font-bold text-sm mb-2">
+                  Datos detectados
+                </Text>
+                {ocrData.issuer_name && (
+                  <Text className="text-gray-600 text-xs">
+                    Emisor: {ocrData.issuer_name}
+                    {ocrData.issuer_nif ? ` (${ocrData.issuer_nif})` : ""}
+                  </Text>
+                )}
+                {ocrData.invoice_number && (
+                  <Text className="text-gray-600 text-xs">
+                    Factura: {ocrData.invoice_number}
+                    {ocrData.invoice_date ? ` - ${ocrData.invoice_date}` : ""}
+                  </Text>
+                )}
+                {ocrData.base_amount && (
+                  <Text className="text-gray-600 text-xs">
+                    Base: {ocrData.base_amount.toFixed(2)} EUR
+                    {ocrData.iva_percent
+                      ? ` | IVA ${ocrData.iva_percent}%: ${(ocrData.iva_amount || 0).toFixed(2)} EUR`
+                      : ""}
+                  </Text>
+                )}
+                {ocrData.total_amount && (
+                  <Text className="font-bold text-primary text-base mt-1">
+                    Total: {ocrData.total_amount.toFixed(2)} EUR
+                  </Text>
+                )}
               </View>
             )}
 

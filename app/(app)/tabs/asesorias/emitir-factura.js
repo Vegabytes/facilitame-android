@@ -48,6 +48,7 @@ export default function EmitirFacturaScreen() {
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState([]);
   const [loadingClients, setLoadingClients] = useState(true);
+  const [isClientUser, setIsClientUser] = useState(false);
 
   // Client mode: 'select' or 'manual'
   const [clientMode, setClientMode] = useState("select");
@@ -72,7 +73,7 @@ export default function EmitirFacturaScreen() {
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState({});
 
-  // Load clients
+  // Load clients (only for advisory users; clients skip this)
   useFocusEffect(
     useCallback(() => {
       const loadClients = async () => {
@@ -85,8 +86,9 @@ export default function EmitirFacturaScreen() {
           if (response?.status === "ok") {
             setClients(response.data?.clients || []);
           } else if (response?.code === 403) {
-            Alert.alert("Error", "Solo las asesorías pueden emitir facturas");
-            router.back();
+            // User is a client, not an advisory - switch to manual mode
+            setIsClientUser(true);
+            setClientMode("manual");
           }
         } catch (_error) {
           // silent
@@ -95,7 +97,7 @@ export default function EmitirFacturaScreen() {
         }
       };
       loadClients();
-    }, [router]),
+    }, []),
   );
 
   // Line management
@@ -117,14 +119,16 @@ export default function EmitirFacturaScreen() {
   // Calculations
   const calcTotals = () => {
     let subtotal = 0;
+    let taxAmount = 0;
     lines.forEach((line) => {
       const qty = parseFloat(line.quantity) || 0;
       const price = parseFloat(line.unit_price) || 0;
-      subtotal += qty * price;
+      const lineSubtotal = qty * price;
+      const lineTaxRate = parseFloat(line.tax_rate) || 21;
+      subtotal += lineSubtotal;
+      taxAmount += lineSubtotal * (lineTaxRate / 100);
     });
-    // Use global tax rate from first line
     const taxRate = parseFloat(lines[0]?.tax_rate) || 21;
-    const taxAmount = subtotal * (taxRate / 100);
     const irpfAmount = subtotal * (irpfRate / 100);
     const total = subtotal + taxAmount - irpfAmount;
     return {
@@ -167,10 +171,12 @@ export default function EmitirFacturaScreen() {
   const validateForm = () => {
     const newErrors = {};
 
-    if (clientMode === "select") {
-      if (!selectedClient) newErrors.client = "Selecciona un cliente";
-    } else {
-      if (!manualName.trim()) newErrors.manualName = "El nombre es obligatorio";
+    if (!isClientUser) {
+      if (clientMode === "select") {
+        if (!selectedClient) newErrors.client = "Selecciona un cliente";
+      } else {
+        if (!manualName.trim()) newErrors.manualName = "El nombre es obligatorio";
+      }
     }
 
     if (!invoiceDate) newErrors.date = "Selecciona una fecha";
@@ -204,8 +210,10 @@ export default function EmitirFacturaScreen() {
 
       const formData = new FormData();
 
-      // Client data depending on mode
-      if (clientMode === "select" && selectedClient) {
+      // Client data depending on mode (clients skip this - backend auto-assigns)
+      if (isClientUser) {
+        // Backend will use USER['id'] as customer_id
+      } else if (clientMode === "select" && selectedClient) {
         if (selectedClient.type === "invoice_client") {
           formData.append("invoice_client_id", selectedClient.id);
         } else {
@@ -338,7 +346,8 @@ export default function EmitirFacturaScreen() {
             </Text>
           </View>
 
-          {/* Client section */}
+          {/* Client section - hidden for client users (they are the client) */}
+          {!isClientUser && (
           <View className="bg-white p-5 rounded-2xl mb-4">
             <Text className="font-bold text-lg mb-3">Cliente</Text>
 
@@ -447,6 +456,7 @@ export default function EmitirFacturaScreen() {
               </>
             )}
           </View>
+          )}
 
           {/* Invoice date */}
           <View className="bg-white p-5 rounded-2xl mb-4">

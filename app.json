@@ -3,7 +3,7 @@
     "scheme": "facilitame",
     "slug": "facilitame",
     "name": "Facilítame",
-    "version": "1.4.4",
+    "version": "1.5.0",
     "orientation": "portrait",
     "platforms": [
       "ios",
@@ -21,7 +21,7 @@
     "ios": {
       "bundleIdentifier": "com.boldsoftware.facilitame",
       "supportsTablet": true,
-      "buildNumber": "28",
+      "buildNumber": "30",
       "associatedDomains": [
         "applinks:app.facilitame.es",
         "webcredentials:app.facilitame.es"
@@ -40,7 +40,7 @@
         "backgroundImage": "./assets/ic_launcher_background.png"
       },
       "label": "Facilítame",
-      "versionCode": 76,
+      "versionCode": 78,
       "intentFilters": [
         {
           "action": "VIEW",

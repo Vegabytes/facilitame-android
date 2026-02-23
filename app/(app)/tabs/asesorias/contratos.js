@@ -104,18 +104,32 @@ export default function ContratosScreen() {
       const statusConf = STATUS_CONFIG[item.status] || STATUS_CONFIG.activo;
       const typeName = CONTRACT_TYPES[item.contract_type] || item.contract_type;
 
-      const openFile = async () => {
-        if (!item.first_file_id) {
-          Alert.alert("Sin documento", "Este contrato no tiene documento adjunto");
-          return;
-        }
+      const openFileById = async (fileId) => {
         try {
           const token = await getAuthToken();
-          const url = `${API_URL}/file-download?type=advisory_contract_file&id=${item.first_file_id}&auth_token=${token}`;
+          const url = `${API_URL}/file-download?type=advisory_contract_file&id=${fileId}&auth_token=${token}`;
           await Linking.openURL(url);
         } catch (_error) {
           Alert.alert("Error", "No se pudo abrir el archivo");
         }
+      };
+
+      const openFile = async () => {
+        const files = item.files || [];
+        if (files.length === 0 && !item.first_file_id) {
+          Alert.alert("Sin documento", "Este contrato no tiene documento adjunto");
+          return;
+        }
+        if (files.length <= 1) {
+          openFileById(files[0]?.id || item.first_file_id);
+          return;
+        }
+        const buttons = files.map((f, idx) => ({
+          text: f.name || `Documento ${idx + 1}`,
+          onPress: () => openFileById(f.id),
+        }));
+        buttons.push({ text: "Cancelar", style: "cancel" });
+        Alert.alert("Seleccionar documento", `${files.length} archivos adjuntos`, buttons);
       };
 
       return (

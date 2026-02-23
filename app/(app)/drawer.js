@@ -51,7 +51,7 @@ export default function DrawerContent() {
         <View className="w-full flex flex-row mb-7">
           <TouchableOpacity
             onPress={() =>
-              Linking.openURL("https://www.instagram.com/facilitame.2024/")
+              Linking.openURL("https://www.instagram.com/facilitame.app/")
             }
           >
             <Image

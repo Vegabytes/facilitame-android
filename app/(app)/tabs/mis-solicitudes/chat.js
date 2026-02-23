@@ -61,16 +61,24 @@ export default function ChatScreen() {
     }
   }
 
-  const onSend = useCallback((newMessages = []) => {
+  const onSend = useCallback(async (newMessages = []) => {
     setChat((previousMessages) =>
       GiftedChat.append(previousMessages, newMessages),
     );
 
-    fetchWithAuth("app-chat-message-store", {
-      text: newMessages[0].text,
-      request_id: id,
-    });
-  }, []);
+    try {
+      await fetchWithAuth("app-chat-message-store", {
+        text: newMessages[0].text,
+        request_id: id,
+      });
+    } catch (err) {
+      Alert.alert("Error", "No se pudo enviar el mensaje. Comprueba tu conexión.");
+      // Remove the failed message from UI
+      setChat((previousMessages) =>
+        previousMessages.filter((msg) => msg._id !== newMessages[0]._id),
+      );
+    }
+  }, [id]);
 
   const renderBubble = (props) => {
     return (

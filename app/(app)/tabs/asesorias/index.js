@@ -17,16 +17,16 @@ import { fetchWithAuth } from "../../../../utils/api";
 
 // Opciones del menú de asesoría
 const MENU_OPTIONS = [
+  { id: "enviar-factura", name: "Enviar Factura", icon: "📤", description: "Sube una factura", route: "/tabs/asesorias/facturas?autoUpload=true" },
+  { id: "facturas", name: "Facturas", icon: "📄", description: "Facturas y documentos", route: "/tabs/asesorias/facturas" },
   { id: "tu-asesor", name: "Tu Asesor", icon: "👤", description: "Chat directo con tu asesor", route: "/tabs/asesorias/tu-asesor", statKey: "general_chat_unread" },
-  { id: "facturas", name: "Facturas", icon: "📄", description: "Ver facturas emitidas", route: "/tabs/asesorias/facturas" },
   { id: "citas", name: "Citas", icon: "📅", description: "Gestionar tus citas", route: "/tabs/asesorias/citas", statKey: "appointments_needs_confirmation" },
   { id: "comunicados", name: "Comunicados", icon: "💬", description: "Mensajes de tu asesoría", route: "/tabs/asesorias/comunicaciones", statKey: "communications_unread" },
   { id: "nueva-cita", name: "Nueva cita", icon: "➕", description: "Solicitar una cita", route: "/tabs/asesorias/nueva-cita" },
   { id: "contratos", name: "Contratos", icon: "📋", description: "Contratos laborales", route: "/tabs/asesorias/contratos" },
   { id: "nominas", name: "Nóminas", icon: "💰", description: "Nóminas mensuales", route: "/tabs/asesorias/nominas" },
   { id: "metricas", name: "Métricas", icon: "📊", description: "Ingresos, gastos y balance", route: "/tabs/asesorias/metricas" },
-  { id: "emitir-factura", name: "Emitir Factura", icon: "🧾", description: "Crear facturas a clientes", route: "/tabs/asesorias/emitir-factura" },
-  { id: "enviar-factura", name: "Enviar Factura", icon: "📤", description: "Sube una factura", route: "/tabs/asesorias/facturas?autoUpload=true", requiresInvoices: true },
+  { id: "emitir-factura", name: "Emitir Factura", icon: "🧾", description: "Crear facturas a clientes", route: "/tabs/asesorias/emitir-factura", requiresEmit: true },
   { id: "info", name: "Mi asesoría", icon: "🏢", description: "Información de contacto", route: "/tabs/asesorias/info" },
 ];
 
@@ -39,6 +39,8 @@ export default function AsesoriasScreen() {
   const [stats, setStats] = useState(null);
   const [nextAppointment, setNextAppointment] = useState(null);
   const [canSendInvoices, setCanSendInvoices] = useState(false);
+  const [canEmitInvoices, setCanEmitInvoices] = useState(false);
+  const [isAdvisoryUser, setIsAdvisoryUser] = useState(false);
   const [allowChat, setAllowChat] = useState(true);
 
   const loadAdvisoryData = useCallback(async () => {
@@ -59,6 +61,8 @@ export default function AsesoriasScreen() {
         setStats(response.data?.stats || null);
         setNextAppointment(response.data?.next_appointment || null);
         setCanSendInvoices(response.data?.can_send_invoices || false);
+        setCanEmitInvoices(response.data?.can_emit_invoices || false);
+        setIsAdvisoryUser(response.data?.is_advisory_user || false);
         setAllowChat(response.data?.allow_chat !== false);
       } else if (__DEV__) {
         console.log("[Asesorias] Response status not ok:", response?.status);
@@ -191,7 +195,7 @@ export default function AsesoriasScreen() {
 
         {/* Grid de opciones 2x2 + 1 */}
         <View className="flex-row flex-wrap justify-between">
-          {MENU_OPTIONS.filter(opt => allowChat || opt.id !== "tu-asesor").slice(0, 4).map((option) => {
+          {MENU_OPTIONS.filter(opt => (allowChat || opt.id !== "tu-asesor") && (!opt.requiresInvoices || canSendInvoices) && (!opt.requiresAdvisory || isAdvisoryUser) && (!opt.requiresEmit || canEmitInvoices)).slice(0, 4).map((option) => {
             const badgeCount = option.statKey ? stats?.[option.statKey] : 0;
 
             return (
@@ -224,7 +228,7 @@ export default function AsesoriasScreen() {
         </View>
 
         {/* Opciones adicionales como filas */}
-        {MENU_OPTIONS.filter(opt => (allowChat || opt.id !== "tu-asesor") && (!opt.requiresInvoices || canSendInvoices)).slice(4).map((option) => (
+        {MENU_OPTIONS.filter(opt => (allowChat || opt.id !== "tu-asesor") && (!opt.requiresInvoices || canSendInvoices) && (!opt.requiresAdvisory || isAdvisoryUser) && (!opt.requiresEmit || canEmitInvoices)).slice(4).map((option) => (
           <TouchableOpacity
             key={option.id}
             className="bg-white rounded-2xl p-4 flex-row items-center mb-3"
