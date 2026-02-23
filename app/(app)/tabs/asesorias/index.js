@@ -15,20 +15,27 @@ import {
 import { useRouter, useFocusEffect } from "expo-router";
 import { fetchWithAuth } from "../../../../utils/api";
 
-// Opciones del menú de asesoría
-const MENU_OPTIONS = [
-  { id: "enviar-factura", name: "Enviar Factura", icon: "📤", description: "Sube una factura", route: "/tabs/asesorias/facturas?autoUpload=true" },
-  { id: "facturas", name: "Facturas", icon: "📄", description: "Facturas y documentos", route: "/tabs/asesorias/facturas" },
-  { id: "tu-asesor", name: "Tu Asesor", icon: "👤", description: "Chat directo con tu asesor", route: "/tabs/asesorias/tu-asesor", statKey: "general_chat_unread" },
-  { id: "citas", name: "Citas", icon: "📅", description: "Gestionar tus citas", route: "/tabs/asesorias/citas", statKey: "appointments_needs_confirmation" },
-  { id: "comunicados", name: "Comunicados", icon: "💬", description: "Mensajes de tu asesoría", route: "/tabs/asesorias/comunicaciones", statKey: "communications_unread" },
-  { id: "nueva-cita", name: "Nueva cita", icon: "➕", description: "Solicitar una cita", route: "/tabs/asesorias/nueva-cita" },
-  { id: "contratos", name: "Contratos", icon: "📋", description: "Contratos laborales", route: "/tabs/asesorias/contratos" },
-  { id: "nominas", name: "Nóminas", icon: "💰", description: "Nóminas mensuales", route: "/tabs/asesorias/nominas" },
-  { id: "metricas", name: "Métricas", icon: "📊", description: "Ingresos, gastos y balance", route: "/tabs/asesorias/metricas" },
-  { id: "emitir-factura", name: "Emitir Factura", icon: "🧾", description: "Crear facturas a clientes", route: "/tabs/asesorias/emitir-factura", requiresEmit: true },
-  { id: "info", name: "Mi asesoría", icon: "🏢", description: "Información de contacto", route: "/tabs/asesorias/info" },
-];
+// All menu items by ID
+const ALL_OPTIONS = {
+  "tu-asesor": { id: "tu-asesor", name: "Tu Asesor", icon: "👤", description: "Chat directo con tu asesor", route: "/tabs/asesorias/tu-asesor", statKey: "general_chat_unread" },
+  "facturas": { id: "facturas", name: "Facturas", icon: "📄", description: "Facturas y documentos", route: "/tabs/asesorias/facturas" },
+  "citas": { id: "citas", name: "Citas", icon: "📅", description: "Gestionar tus citas", route: "/tabs/asesorias/citas", statKey: "appointments_needs_confirmation" },
+  "comunicados": { id: "comunicados", name: "Comunicados", icon: "💬", description: "Mensajes de tu asesoría", route: "/tabs/asesorias/comunicaciones", statKey: "communications_unread" },
+  "enviar-factura": { id: "enviar-factura", name: "Enviar Factura", icon: "📤", description: "Sube una factura", route: "/tabs/asesorias/facturas?autoUpload=true" },
+  "nueva-cita": { id: "nueva-cita", name: "Nueva cita", icon: "➕", description: "Solicitar una cita", route: "/tabs/asesorias/nueva-cita" },
+  "contratos": { id: "contratos", name: "Contratos", icon: "📋", description: "Contratos laborales", route: "/tabs/asesorias/contratos" },
+  "nominas": { id: "nominas", name: "Nóminas", icon: "💰", description: "Nóminas mensuales", route: "/tabs/asesorias/nominas" },
+  "metricas": { id: "metricas", name: "Métricas", icon: "📊", description: "Ingresos, gastos y balance", route: "/tabs/asesorias/metricas" },
+  "emitir-factura": { id: "emitir-factura", name: "Emitir Factura", icon: "🧾", description: "Crear facturas a clientes", route: "/tabs/asesorias/emitir-factura", requiresEmit: true },
+  "info": { id: "info", name: "Mi asesoría", icon: "🏢", description: "Información de contacto", route: "/tabs/asesorias/info" },
+};
+
+// Grid preferred order (top 2x2)
+const GRID_PREFERRED = ["tu-asesor", "facturas", "citas", "comunicados"];
+// Fixed list items (always 1st and 2nd in bottom list)
+const LIST_FIXED = ["enviar-factura", "nueva-cita"];
+// Variable list items (can rotate up to grid if needed)
+const LIST_VARIABLE = ["contratos", "nominas", "metricas", "emitir-factura", "info"];
 
 export default function AsesoriasScreen() {
   const router = useRouter();
@@ -193,63 +200,93 @@ export default function AsesoriasScreen() {
           )}
         </View>
 
-        {/* Grid de opciones 2x2 + 1 */}
-        <View className="flex-row flex-wrap justify-between">
-          {MENU_OPTIONS.filter(opt => (allowChat || opt.id !== "tu-asesor") && (!opt.requiresInvoices || canSendInvoices) && (!opt.requiresAdvisory || isAdvisoryUser) && (!opt.requiresEmit || canEmitInvoices)).slice(0, 4).map((option) => {
-            const badgeCount = option.statKey ? stats?.[option.statKey] : 0;
+        {/* Build menu: grid + list with dynamic rotation */}
+        {(() => {
+          // Filter function: check if an option is allowed
+          const isAllowed = (id) => {
+            if (id === "tu-asesor" && !allowChat) return false;
+            if (id === "emitir-factura" && !canEmitInvoices) return false;
+            return true;
+          };
 
-            return (
-              <TouchableOpacity
-                key={option.id}
-                className="w-[48%] bg-white rounded-2xl p-4 mb-4"
-                onPress={() => router.push(option.route)}
-                activeOpacity={0.7}
-                style={{
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.05,
-                  shadowRadius: 8,
-                  elevation: 2,
-                }}
-              >
-                <View className="flex-row items-start justify-between mb-3">
-                  <Text className="text-4xl">{option.icon}</Text>
-                  {badgeCount > 0 && (
-                    <View className="bg-red-500 px-2 py-1 rounded-full">
-                      <Text className="text-white text-xs font-bold">{badgeCount}</Text>
-                    </View>
-                  )}
-                </View>
-                <Text className="font-extrabold text-base">{option.name}</Text>
-                <Text className="text-gray-500 text-xs mt-1">{option.description}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+          // 1. Grid: preferred items, filtered
+          const gridItems = GRID_PREFERRED.filter(isAllowed).map(id => ALL_OPTIONS[id]);
 
-        {/* Opciones adicionales como filas */}
-        {MENU_OPTIONS.filter(opt => (allowChat || opt.id !== "tu-asesor") && (!opt.requiresInvoices || canSendInvoices) && (!opt.requiresAdvisory || isAdvisoryUser) && (!opt.requiresEmit || canEmitInvoices)).slice(4).map((option) => (
-          <TouchableOpacity
-            key={option.id}
-            className="bg-white rounded-2xl p-4 flex-row items-center mb-3"
-            onPress={() => router.push(option.route)}
-            activeOpacity={0.7}
-            style={{
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.05,
-              shadowRadius: 8,
-              elevation: 2,
-            }}
-          >
-            <Text className="text-4xl mr-4">{option.icon}</Text>
-            <View className="flex-1">
-              <Text className="font-extrabold text-base">{option.name}</Text>
-              <Text className="text-gray-500 text-xs">{option.description}</Text>
-            </View>
-            <Text className="text-gray-400 text-xl">›</Text>
-          </TouchableOpacity>
-        ))}
+          // 2. Variable list items, filtered
+          const variableItems = LIST_VARIABLE.filter(isAllowed).map(id => ALL_OPTIONS[id]);
+
+          // 3. If grid < 4, pull from variable to fill
+          const promoted = [];
+          while (gridItems.length < 4 && variableItems.length > 0) {
+            promoted.push(variableItems.shift());
+          }
+          const finalGrid = [...gridItems, ...promoted];
+
+          // 4. Fixed list items (always 1st and 2nd) + remaining variable
+          const fixedItems = LIST_FIXED.filter(isAllowed).map(id => ALL_OPTIONS[id]);
+          const finalList = [...fixedItems, ...variableItems];
+
+          return (
+            <>
+              {/* Grid 2x2 */}
+              <View className="flex-row flex-wrap justify-between">
+                {finalGrid.map((option) => {
+                  const badgeCount = option.statKey ? stats?.[option.statKey] : 0;
+                  return (
+                    <TouchableOpacity
+                      key={option.id}
+                      className="w-[48%] bg-white rounded-2xl p-4 mb-4"
+                      onPress={() => router.push(option.route)}
+                      activeOpacity={0.7}
+                      style={{
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.05,
+                        shadowRadius: 8,
+                        elevation: 2,
+                      }}
+                    >
+                      <View className="flex-row items-start justify-between mb-3">
+                        <Text className="text-4xl">{option.icon}</Text>
+                        {badgeCount > 0 && (
+                          <View className="bg-red-500 px-2 py-1 rounded-full">
+                            <Text className="text-white text-xs font-bold">{badgeCount}</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text className="font-extrabold text-base">{option.name}</Text>
+                      <Text className="text-gray-500 text-xs mt-1">{option.description}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* List rows */}
+              {finalList.map((option) => (
+                <TouchableOpacity
+                  key={option.id}
+                  className="bg-white rounded-2xl p-4 flex-row items-center mb-3"
+                  onPress={() => router.push(option.route)}
+                  activeOpacity={0.7}
+                  style={{
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 8,
+                    elevation: 2,
+                  }}
+                >
+                  <Text className="text-4xl mr-4">{option.icon}</Text>
+                  <View className="flex-1">
+                    <Text className="font-extrabold text-base">{option.name}</Text>
+                    <Text className="text-gray-500 text-xs">{option.description}</Text>
+                  </View>
+                  <Text className="text-gray-400 text-xl">›</Text>
+                </TouchableOpacity>
+              ))}
+            </>
+          );
+        })()}
 
       </View>
     </ScrollView>
