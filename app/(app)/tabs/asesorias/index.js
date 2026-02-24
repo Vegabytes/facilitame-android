@@ -49,6 +49,7 @@ export default function AsesoriasScreen() {
   const [canEmitInvoices, setCanEmitInvoices] = useState(false);
   const [isAdvisoryUser, setIsAdvisoryUser] = useState(false);
   const [allowChat, setAllowChat] = useState(true);
+  const [sidebar, setSidebar] = useState(null);
 
   const loadAdvisoryData = useCallback(async () => {
     try {
@@ -71,6 +72,7 @@ export default function AsesoriasScreen() {
         setCanEmitInvoices(response.data?.can_emit_invoices || false);
         setIsAdvisoryUser(response.data?.is_advisory_user || false);
         setAllowChat(response.data?.allow_chat !== false);
+        setSidebar(response.data?.sidebar || null);
       } else if (__DEV__) {
         console.log("[Asesorias] Response status not ok:", response?.status);
       }
@@ -202,10 +204,18 @@ export default function AsesoriasScreen() {
 
         {/* Build menu: grid + list with dynamic rotation */}
         {(() => {
-          // Filter function: check if an option is allowed
+          // Filter function: check if an option is allowed by advisory config
           const isAllowed = (id) => {
             if (id === "tu-asesor" && !allowChat) return false;
+            if (id === "comunicados" && sidebar?.show_communications === false) return false;
             if (id === "emitir-factura" && !canEmitInvoices) return false;
+            if (id === "contratos" && sidebar?.show_contracts === false) return false;
+            if (id === "nominas" && sidebar?.show_payrolls === false) return false;
+            if (id === "metricas" && sidebar?.show_metrics === false) return false;
+            if (id === "facturas" && sidebar?.show_invoices === false) return false;
+            if (id === "enviar-factura" && sidebar?.show_invoices === false) return false;
+            if (id === "citas" && sidebar?.show_appointments === false) return false;
+            if (id === "nueva-cita" && sidebar?.show_appointments === false) return false;
             return true;
           };
 
