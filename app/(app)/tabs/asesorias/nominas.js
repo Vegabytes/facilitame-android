@@ -108,6 +108,35 @@ export default function NominasScreen() {
     return { pendientes, procesadas, pagadas, total: payrolls.length };
   }, [payrolls]);
 
+  const changePayrollStatus = useCallback(async (payrollId, currentStatus) => {
+    const options = [
+      { text: "Pendiente", value: "pendiente" },
+      { text: "Procesada", value: "procesada" },
+      { text: "Pagada", value: "pagada" },
+    ].filter((o) => o.value !== currentStatus);
+
+    const buttons = options.map((o) => ({
+      text: o.text,
+      onPress: async () => {
+        try {
+          const res = await fetchWithAuth("app-advisory-payroll-update-status", {
+            payroll_id: payrollId,
+            status: o.value,
+          });
+          if (res?.status === "ok") {
+            loadPayrolls();
+          } else {
+            Alert.alert("Error", res?.message || "No se pudo actualizar");
+          }
+        } catch (_e) {
+          Alert.alert("Error", "Error de conexión");
+        }
+      },
+    }));
+    buttons.push({ text: "Cancelar", style: "cancel" });
+    Alert.alert("Cambiar estado", "Selecciona el nuevo estado", buttons);
+  }, [loadPayrolls]);
+
   const renderPayroll = useCallback(
     ({ item }) => {
       const statusConf = STATUS_CONFIG[item.status] || STATUS_CONFIG.pendiente;
@@ -122,7 +151,7 @@ export default function NominasScreen() {
                 : "border-amber-500"
           }`}
           onPress={() => openFile(item)}
-          activeOpacity={item.filename ? 0.7 : 1}
+          activeOpacity={0.7}
         >
           <View className="flex-row items-start justify-between mb-2">
             <View className="flex-1 mr-2">
@@ -133,11 +162,14 @@ export default function NominasScreen() {
                 {formatYearMonth(item.year_month)}
               </Text>
             </View>
-            <View className={`px-2 py-1 rounded-full ${statusConf.bg}`}>
+            <TouchableOpacity
+              className={`px-3 py-1 rounded-full ${statusConf.bg}`}
+              onPress={() => changePayrollStatus(item.id, item.status)}
+            >
               <Text className={`text-xs font-medium ${statusConf.text}`}>
-                {statusConf.label}
+                {statusConf.label} ▾
               </Text>
-            </View>
+            </TouchableOpacity>
           </View>
 
           <View className="flex-row items-center justify-between">
@@ -166,7 +198,7 @@ export default function NominasScreen() {
         </TouchableOpacity>
       );
     },
-    [],
+    [changePayrollStatus],
   );
 
   const keyExtractor = useCallback((item) => item.id.toString(), []);

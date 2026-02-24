@@ -99,6 +99,35 @@ export default function ContratosScreen() {
     return { activos, finalizados, pendientes, total: contracts.length };
   }, [contracts]);
 
+  const changeContractStatus = useCallback(async (contractId, currentStatus) => {
+    const options = [
+      { text: "Activo", value: "activo" },
+      { text: "Finalizado", value: "finalizado" },
+      { text: "Pendiente", value: "pendiente_revision" },
+    ].filter((o) => o.value !== currentStatus);
+
+    const buttons = options.map((o) => ({
+      text: o.text,
+      onPress: async () => {
+        try {
+          const res = await fetchWithAuth("app-advisory-contract-update-status", {
+            contract_id: contractId,
+            status: o.value,
+          });
+          if (res?.status === "ok") {
+            loadContracts();
+          } else {
+            Alert.alert("Error", res?.message || "No se pudo actualizar");
+          }
+        } catch (_e) {
+          Alert.alert("Error", "Error de conexión");
+        }
+      },
+    }));
+    buttons.push({ text: "Cancelar", style: "cancel" });
+    Alert.alert("Cambiar estado", "Selecciona el nuevo estado", buttons);
+  }, [loadContracts]);
+
   const renderContract = useCallback(
     ({ item }) => {
       const statusConf = STATUS_CONFIG[item.status] || STATUS_CONFIG.activo;
@@ -153,11 +182,14 @@ export default function ContratosScreen() {
                 <Text className="text-gray-500 text-xs">{item.position}</Text>
               )}
             </View>
-            <View className={`px-2 py-1 rounded-full ${statusConf.bg}`}>
+            <TouchableOpacity
+              className={`px-3 py-1 rounded-full ${statusConf.bg}`}
+              onPress={() => changeContractStatus(item.id, item.status)}
+            >
               <Text className={`text-xs font-medium ${statusConf.text}`}>
-                {statusConf.label}
+                {statusConf.label} ▾
               </Text>
-            </View>
+            </TouchableOpacity>
           </View>
 
           <View className="flex-row items-center flex-wrap gap-2">
@@ -189,7 +221,7 @@ export default function ContratosScreen() {
         </TouchableOpacity>
       );
     },
-    [],
+    [changeContractStatus],
   );
 
   const keyExtractor = useCallback((item) => item.id.toString(), []);
