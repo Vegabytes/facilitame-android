@@ -259,7 +259,9 @@ export default function FacturasScreen() {
           name: `Factura_${Date.now()}.jpg`,
           mimeType: "image/jpeg",
         }));
-        setSelectedFiles((prev) => [...prev, ...newFiles]);
+        const allFiles = [...selectedFiles, ...newFiles];
+        setSelectedFiles(allFiles);
+        tryOcrDetection(allFiles);
       }
     } catch (_error) {
       Alert.alert("Error", "No se pudo tomar la foto");
@@ -286,7 +288,9 @@ export default function FacturasScreen() {
           name: asset.fileName || `Imagen_${Date.now()}_${index}.jpg`,
           mimeType: asset.mimeType || "image/jpeg",
         }));
-        setSelectedFiles((prev) => [...prev, ...newFiles]);
+        const allFiles = [...selectedFiles, ...newFiles];
+        setSelectedFiles(allFiles);
+        tryOcrDetection(allFiles);
       }
     } catch (_error) {
       Alert.alert("Error", "No se pudieron seleccionar las imagenes");
@@ -312,20 +316,30 @@ export default function FacturasScreen() {
   };
 
   const tryOcrDetection = async (files) => {
-    const pdfs = files.filter(
-      (f) => f.mimeType === "application/pdf" || f.name?.endsWith(".pdf"),
+    const ocrFiles = files.filter(
+      (f) =>
+        f.mimeType === "application/pdf" ||
+        f.mimeType === "image/jpeg" ||
+        f.mimeType === "image/png" ||
+        f.name?.endsWith(".pdf") ||
+        f.name?.endsWith(".jpg") ||
+        f.name?.endsWith(".jpeg") ||
+        f.name?.endsWith(".png"),
     );
-    if (pdfs.length !== 1) {
+    if (ocrFiles.length !== 1) {
       setOcrData(null);
       return;
     }
     setOcrLoading(true);
     try {
+      const file = ocrFiles[0];
+      const isPdf =
+        file.mimeType === "application/pdf" || file.name?.endsWith(".pdf");
       const fd = new FormData();
       fd.append("file", {
-        uri: pdfs[0].uri,
-        name: pdfs[0].name || "invoice.pdf",
-        type: "application/pdf",
+        uri: file.uri,
+        name: file.name || (isPdf ? "invoice.pdf" : "invoice.jpg"),
+        type: file.mimeType || (isPdf ? "application/pdf" : "image/jpeg"),
       });
       const res = await fetchWithAuth("advisory-invoice-upload-ocr", fd, {
         silent: true,
@@ -333,7 +347,10 @@ export default function FacturasScreen() {
       if (res?.status === "ok" && res.data?.fields) {
         const f = res.data.fields;
         if (f.total_amount || f.base_amount || f.issuer_name) {
-          setOcrData(f);
+          setOcrData({
+            fields: f,
+            validation: res.data.validation || null,
+          });
         } else {
           setOcrData(null);
         }
@@ -1063,34 +1080,112 @@ export default function FacturasScreen() {
               </View>
             )}
             {ocrData && !ocrLoading && (
-              <View className="bg-blue-50 p-4 rounded-xl mb-5">
-                <Text className="font-bold text-sm mb-2">
-                  Datos detectados
-                </Text>
-                {ocrData.issuer_name && (
-                  <Text className="text-gray-600 text-xs">
-                    Emisor: {ocrData.issuer_name}
-                    {ocrData.issuer_nif ? ` (${ocrData.issuer_nif})` : ""}
+              <View className="mb-5">
+                <View className="bg-blue-50 p-4 rounded-xl">
+                  <Text className="font-bold text-sm mb-2">
+                    Datos detectados
                   </Text>
-                )}
-                {ocrData.invoice_number && (
-                  <Text className="text-gray-600 text-xs">
-                    Factura: {ocrData.invoice_number}
-                    {ocrData.invoice_date ? ` - ${ocrData.invoice_date}` : ""}
-                  </Text>
-                )}
-                {ocrData.base_amount && (
-                  <Text className="text-gray-600 text-xs">
-                    Base: {ocrData.base_amount.toFixed(2)} EUR
-                    {ocrData.iva_percent
-                      ? ` | IVA ${ocrData.iva_percent}%: ${(ocrData.iva_amount || 0).toFixed(2)} EUR`
-                      : ""}
-                  </Text>
-                )}
-                {ocrData.total_amount && (
-                  <Text className="font-bold text-primary text-base mt-1">
-                    Total: {ocrData.total_amount.toFixed(2)} EUR
-                  </Text>
+                  {ocrData.fields.issuer_name && (
+                    <Text className="text-gray-600 text-xs">
+                      Emisor: {ocrData.fields.issuer_name}
+                      {ocrData.fields.issuer_nif
+                        ? ` (${ocrData.fields.issuer_nif})`
+                        : ""}
+                    </Text>
+                  )}
+                  {ocrData.fields.invoice_number && (
+                    <Text className="text-gray-600 text-xs">
+                      Factura: {ocrData.fields.invoice_number}
+                      {ocrData.fields.invoice_date
+                        ? ` - ${ocrData.fields.invoice_date}`
+                        : ""}
+                    </Text>
+                  )}
+                  {ocrData.fields.base_amount && (
+                    <Text className="text-gray-600 text-xs">
+                      Base: {ocrData.fields.base_amount.toFixed(2)} EUR
+                      {ocrData.fields.iva_percent
+                        ? ` | IVA ${ocrData.fields.iva_percent}%: ${(ocrData.fields.iva_amount || 0).toFixed(2)} EUR`
+                        : ""}
+                    </Text>
+                  )}
+                  {ocrData.fields.total_amount && (
+                    <Text className="font-bold text-base mt-1" style={{ color: "#30D4D1" }}>
+                      Total: {ocrData.fields.total_amount.toFixed(2)} EUR
+                    </Text>
+                  )}
+                </View>
+                {ocrData.validation && (
+                  <View
+                    className="p-3 rounded-xl mt-2"
+                    style={{
+                      backgroundColor:
+                        ocrData.validation.status === "ok"
+                          ? "#d1fae5"
+                          : "#fef3c7",
+                    }}
+                  >
+                    <View className="flex-row flex-wrap gap-2 mb-1">
+                      {[
+                        {
+                          key: "cif",
+                          label: "CIF",
+                          extra: ocrData.validation.cif?.value
+                            ? ` (${ocrData.validation.cif.value})`
+                            : "",
+                        },
+                        {
+                          key: "total_amount",
+                          label: "Total",
+                          extra: ocrData.validation.total_amount?.value
+                            ? ` (${ocrData.validation.total_amount.value.toFixed(2)} \u20AC)`
+                            : "",
+                        },
+                        {
+                          key: "iva",
+                          label: "IVA",
+                          extra: ocrData.validation.iva?.value
+                            ? ` (${ocrData.validation.iva.value.toFixed(2)} \u20AC${ocrData.validation.iva.percent ? ` \u00B7 ${ocrData.validation.iva.percent}%` : ""})`
+                            : "",
+                        },
+                      ].map((item) => {
+                        const detected =
+                          ocrData.validation[item.key]?.detected;
+                        return (
+                          <View
+                            key={item.key}
+                            className="px-2 py-1 rounded-lg"
+                            style={{
+                              backgroundColor: detected
+                                ? "#059669"
+                                : "#d97706",
+                            }}
+                          >
+                            <Text
+                              className="text-xs font-semibold"
+                              style={{ color: "#fff" }}
+                            >
+                              {detected ? "\u2713" : "\u2717"} {item.label}
+                              {item.extra}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                    <Text
+                      className="text-xs font-semibold"
+                      style={{
+                        color:
+                          ocrData.validation.status === "ok"
+                            ? "#065f46"
+                            : "#92400e",
+                      }}
+                    >
+                      {ocrData.validation.status === "ok"
+                        ? "Factura verificada: todos los campos clave detectados"
+                        : `Campos no detectados: ${(ocrData.validation.missing || []).map((k) => ({ cif: "CIF", total_amount: "Importe total", iva: "IVA" })[k] || k).join(", ")}`}
+                    </Text>
+                  </View>
                 )}
               </View>
             )}
