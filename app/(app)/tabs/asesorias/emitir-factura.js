@@ -86,9 +86,33 @@ export default function EmitirFacturaScreen() {
           if (response?.status === "ok") {
             setClients(response.data?.clients || []);
           } else if (response?.code === 403) {
-            // User is a client, not an advisory - switch to manual mode
+            // User is a client, not an advisory - load saved invoice clients
             setIsClientUser(true);
-            setClientMode("manual");
+            try {
+              const icRes = await fetchWithAuth(
+                "advisory-invoice-clients",
+                {},
+                { silent: true },
+              );
+              if (icRes?.status === "ok" && icRes.data?.clients?.length > 0) {
+                const formatted = icRes.data.clients.map((c) => ({
+                  id: c.id,
+                  type: "invoice_client",
+                  name: c.name,
+                  lastname: "",
+                  full_name: c.name,
+                  nif_cif: c.nif_cif || "",
+                  email: c.email || "",
+                  address: c.address || "",
+                }));
+                setClients(formatted);
+                setClientMode("select");
+              } else {
+                setClientMode("manual");
+              }
+            } catch (_e) {
+              setClientMode("manual");
+            }
           }
         } catch (_error) {
           // silent
@@ -171,12 +195,12 @@ export default function EmitirFacturaScreen() {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!isClientUser) {
-      if (clientMode === "select") {
-        if (!selectedClient) newErrors.client = "Selecciona un cliente";
-      } else {
-        if (!manualName.trim()) newErrors.manualName = "El nombre es obligatorio";
-      }
+    if (isClientUser) {
+      if (!manualName.trim()) newErrors.manualName = "El nombre del destinatario es obligatorio";
+    } else if (clientMode === "select") {
+      if (!selectedClient) newErrors.client = "Selecciona un cliente";
+    } else {
+      if (!manualName.trim()) newErrors.manualName = "El nombre es obligatorio";
     }
 
     if (!invoiceDate) newErrors.date = "Selecciona una fecha";
@@ -210,9 +234,23 @@ export default function EmitirFacturaScreen() {
 
       const formData = new FormData();
 
-      // Client data depending on mode (clients skip this - backend auto-assigns)
-      if (isClientUser) {
-        // Backend will use USER['id'] as customer_id
+      // Client data depending on mode
+      if (isClientUser && clientMode === "select" && selectedClient) {
+        // Client user selected a saved contact
+        formData.append("invoice_client_id", selectedClient.id);
+        formData.append("client_name", selectedClient.full_name || "");
+        formData.append("client_nif", selectedClient.nif_cif || "");
+        if (selectedClient.address) {
+          formData.append("client_address", selectedClient.address);
+        }
+      } else if (isClientUser) {
+        // Client user manual entry
+        formData.append("client_name", manualName.trim());
+        formData.append("client_nif", manualNif.trim());
+        formData.append("client_address", manualAddress.trim());
+        if (saveClient) {
+          formData.append("save_client", "1");
+        }
       } else if (clientMode === "select" && selectedClient) {
         if (selectedClient.type === "invoice_client") {
           formData.append("invoice_client_id", selectedClient.id);
@@ -346,12 +384,14 @@ export default function EmitirFacturaScreen() {
             </Text>
           </View>
 
-          {/* Client section - hidden for client users (they are the client) */}
-          {!isClientUser && (
+          {/* Client/Recipient section */}
           <View className="bg-white p-5 rounded-2xl mb-4">
-            <Text className="font-bold text-lg mb-3">Cliente</Text>
+            <Text className="font-bold text-lg mb-3">
+              {isClientUser ? "Datos del destinatario" : "Cliente"}
+            </Text>
 
-            {/* Mode toggle */}
+            {/* Mode toggle - show when there are saved clients */}
+            {(clients.length > 0 || !isClientUser) && (
             <View className="flex-row mb-3 bg-gray-100 rounded-xl p-1">
               <TouchableOpacity
                 className={`flex-1 py-2.5 rounded-lg items-center ${
@@ -382,8 +422,9 @@ export default function EmitirFacturaScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
+            )}
 
-            {clientMode === "select" ? (
+            {clientMode === "select" && (clients.length > 0 || !isClientUser) ? (
               <>
                 {errors.client && (
                   <Text className="text-red-500 text-sm mb-2">{errors.client}</Text>
@@ -456,7 +497,6 @@ export default function EmitirFacturaScreen() {
               </>
             )}
           </View>
-          )}
 
           {/* Invoice date */}
           <View className="bg-white p-5 rounded-2xl mb-4">
