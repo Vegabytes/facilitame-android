@@ -120,7 +120,12 @@ export default function NuevaCitaScreen() {
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    if (Object.keys(newErrors).length > 0) {
+      const firstError = Object.values(newErrors)[0];
+      Alert.alert("Revisa el formulario", firstError);
+      return false;
+    }
+    return true;
   };
 
   // Formatear fecha para mostrar

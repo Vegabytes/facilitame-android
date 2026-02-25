@@ -91,7 +91,7 @@ export default function EmitirFacturaScreen() {
             try {
               const icRes = await fetchWithAuth(
                 "advisory-invoice-clients",
-                {},
+                { action: "list" },
                 { silent: true },
               );
               if (icRes?.status === "ok" && icRes.data?.clients?.length > 0) {
@@ -195,12 +195,12 @@ export default function EmitirFacturaScreen() {
   const validateForm = () => {
     const newErrors = {};
 
-    if (isClientUser) {
-      if (!manualName.trim()) newErrors.manualName = "El nombre del destinatario es obligatorio";
-    } else if (clientMode === "select") {
+    if (clientMode === "select") {
       if (!selectedClient) newErrors.client = "Selecciona un cliente";
     } else {
-      if (!manualName.trim()) newErrors.manualName = "El nombre es obligatorio";
+      if (!manualName.trim()) newErrors.manualName = isClientUser
+        ? "El nombre del destinatario es obligatorio"
+        : "El nombre es obligatorio";
     }
 
     if (!invoiceDate) newErrors.date = "Selecciona una fecha";
@@ -214,11 +214,17 @@ export default function EmitirFacturaScreen() {
     if (!hasValidLine) newErrors.lines = "Añade al menos una línea con descripción y precio";
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    if (Object.keys(newErrors).length > 0) {
+      const firstError = Object.values(newErrors)[0];
+      Alert.alert("Revisa el formulario", firstError);
+      return false;
+    }
+    return true;
   };
 
   // Submit
   const handleSubmit = async (emitAfterCreate) => {
+    if (__DEV__) console.log("[EmitirFactura] handleSubmit", { emitAfterCreate, clientMode, isClientUser, selectedClient: selectedClient?.id });
     if (!validateForm()) return;
 
     setLoading(true);
@@ -289,12 +295,14 @@ export default function EmitirFacturaScreen() {
       );
 
       // Create draft
+      if (__DEV__) console.log("[EmitirFactura] Creating draft...");
       const createResponse = await fetchWithAuth(
         "advisory-issued-invoice-create",
         formData,
-        { isFormData: true },
+        { isFormData: true, silent: true },
       );
 
+      if (__DEV__) console.log("[EmitirFactura] Create response:", createResponse?.status, createResponse?.message_plain);
       if (!createResponse || createResponse.status !== "ok") {
         const msg =
           createResponse?.message_html ||
@@ -305,6 +313,10 @@ export default function EmitirFacturaScreen() {
       }
 
       const invoiceId = createResponse.data?.invoice_id;
+      if (!invoiceId) {
+        Alert.alert("Error", "No se obtuvo el ID de la factura creada");
+        return;
+      }
 
       if (!emitAfterCreate) {
         Alert.alert(
@@ -316,13 +328,14 @@ export default function EmitirFacturaScreen() {
       }
 
       // Emit invoice
+      if (__DEV__) console.log("[EmitirFactura] Emitting invoice_id:", invoiceId);
       const emitFormData = new FormData();
       emitFormData.append("invoice_id", invoiceId);
 
       const emitResponse = await fetchWithAuth(
         "advisory-issued-invoice-emit",
         emitFormData,
-        { isFormData: true },
+        { isFormData: true, silent: true },
       );
 
       if (emitResponse && emitResponse.status === "ok") {
@@ -341,7 +354,8 @@ export default function EmitirFacturaScreen() {
             (emitResponse?.message_plain || "Error desconocido"),
         );
       }
-    } catch (_error) {
+    } catch (error) {
+      console.error("[EmitirFactura] Error:", error);
       Alert.alert("Error", "Error de conexión. Inténtalo de nuevo.");
     } finally {
       setLoading(false);

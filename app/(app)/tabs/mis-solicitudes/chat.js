@@ -1,6 +1,6 @@
 import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useState } from "react";
-import { View, ActivityIndicator, StyleSheet, Text, Image } from "react-native";
+import { View, ActivityIndicator, StyleSheet, Text, Image, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useLocalSearchParams } from "expo-router";
 import { fetchWithAuth } from "./../../../../utils/api";
