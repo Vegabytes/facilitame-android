@@ -66,7 +66,7 @@ export default function CitasScreen() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState("confirmar"); // Por defecto mostrar citas por confirmar
+  const [filter, setFilter] = useState("activas"); // Por defecto mostrar todas las citas activas
 
   const loadAppointments = useCallback(async () => {
     try {
@@ -356,6 +356,7 @@ export default function CitasScreen() {
         {/* Filtros */}
         <View className="flex-row mb-4 gap-2 flex-wrap">
           {[
+            { value: "activas", label: "Activas" },
             { value: "confirmar", label: "Por confirmar" },
             { value: "esperando_asesoria", label: "Esperando" },
             { value: "agendado", label: "Confirmadas" },
@@ -396,7 +397,9 @@ export default function CitasScreen() {
           <View className="items-center py-10">
             <Text className="text-5xl mb-4">📅</Text>
             <Text className="text-gray-500 text-center text-lg">
-              {filter === "confirmar"
+              {filter === "activas"
+                ? "No tienes citas activas"
+                : filter === "confirmar"
                 ? "No tienes citas por confirmar"
                 : filter === "esperando_asesoria"
                 ? "No tienes citas esperando respuesta"
