@@ -4,9 +4,9 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
 export default function WebViewScreen() {
-  const { url } = useLocalSearchParams();
+  const { url, html } = useLocalSearchParams();
 
-  if (!url) {
+  if (!url && !html) {
     return (
       <SafeAreaView
         style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
@@ -16,10 +16,12 @@ export default function WebViewScreen() {
     );
   }
 
+  const source = html ? { html } : { uri: url };
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={{ flex: 1 }}>
-        <WebView source={{ uri: url }} style={{ flex: 1 }} />
+        <WebView source={source} style={{ flex: 1 }} />
       </SafeAreaView>
     </SafeAreaProvider>
   );

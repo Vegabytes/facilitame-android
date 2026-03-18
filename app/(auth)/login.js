@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { View, Text, Image, TouchableOpacity } from "react-native";
+import { View, Text, Image, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
 import { fetchPublic } from "../../utils/api";
@@ -113,7 +113,15 @@ export default function LoginScreen() {
   };
 
   return (
-    <View className="flex-1 justify-center items-center p-5 bg-primary">
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      className="flex-1"
+    >
+    <ScrollView
+      className="flex-1 bg-primary"
+      contentContainerStyle={{ flexGrow: 1, justifyContent: "center", alignItems: "center", padding: 20 }}
+      keyboardShouldPersistTaps="handled"
+    >
       {/* Logo con texto */}
       <View className="w-full aspect-[500/82] self-center">
         <Image
@@ -220,6 +228,7 @@ export default function LoginScreen() {
           </Text>
         </View>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

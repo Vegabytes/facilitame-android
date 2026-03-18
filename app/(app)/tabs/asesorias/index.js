@@ -26,6 +26,7 @@ const ALL_OPTIONS = {
   "contratos": { id: "contratos", name: "Contratos", icon: "📋", description: "Contratos laborales", route: "/tabs/asesorias/contratos" },
   "nominas": { id: "nominas", name: "Nóminas", icon: "💰", description: "Nóminas mensuales", route: "/tabs/asesorias/nominas" },
   "metricas": { id: "metricas", name: "Métricas", icon: "📊", description: "Ingresos, gastos y balance", route: "/tabs/asesorias/metricas" },
+  "subir-nomina": { id: "subir-nomina", name: "Subir Nómina", icon: "📤", description: "Sube nóminas de tus clientes", route: "/tabs/asesorias/nominas?autoUpload=true", requiresAdvisory: true },
   "emitir-factura": { id: "emitir-factura", name: "Emitir Factura", icon: "🧾", description: "Crear facturas a clientes", route: "/tabs/asesorias/emitir-factura", requiresEmit: true },
   "info": { id: "info", name: "Mi asesoría", icon: "🏢", description: "Información de contacto", route: "/tabs/asesorias/info" },
 };
@@ -35,7 +36,7 @@ const GRID_PREFERRED = ["tu-asesor", "facturas", "citas", "comunicados"];
 // Fixed list items (always 1st and 2nd in bottom list)
 const LIST_FIXED = ["enviar-factura", "nueva-cita"];
 // Variable list items (can rotate up to grid if needed)
-const LIST_VARIABLE = ["contratos", "nominas", "metricas", "emitir-factura", "info"];
+const LIST_VARIABLE = ["contratos", "nominas", "subir-nomina", "metricas", "emitir-factura", "info"];
 
 export default function AsesoriasScreen() {
   const router = useRouter();
@@ -209,6 +210,7 @@ export default function AsesoriasScreen() {
             if (id === "tu-asesor" && !allowChat) return false;
             if (id === "comunicados" && sidebar?.show_communications === false) return false;
             if (id === "emitir-factura" && !canEmitInvoices) return false;
+            if (id === "subir-nomina" && !isAdvisoryUser) return false;
             if (id === "contratos" && sidebar?.show_contracts === false) return false;
             if (id === "nominas" && sidebar?.show_payrolls === false) return false;
             if (id === "metricas" && sidebar?.show_metrics === false) return false;

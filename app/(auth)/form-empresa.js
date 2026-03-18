@@ -12,6 +12,7 @@ import {
   Platform,
   TouchableOpacity,
   ActionSheetIOS,
+  KeyboardAvoidingView,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import Checkbox from "expo-checkbox";
@@ -169,6 +170,10 @@ export default function FormEmpresaScreen() {
         paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
       }}
     >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        className="flex-1"
+      >
       <ScrollView
         className="bg-background p-4"
         contentContainerStyle={{
@@ -333,6 +338,7 @@ export default function FormEmpresaScreen() {
           ¡Regístrate!
         </Button>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

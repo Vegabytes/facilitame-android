@@ -13,18 +13,17 @@ import {
   ActivityIndicator,
   Modal,
   Alert,
-  Linking,
   TextInput,
   ScrollView,
   ActionSheetIOS,
   Platform,
+  Image,
+  Dimensions,
 } from "react-native";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { fetchWithAuth } from "../../../../utils/api";
-import { API_URL } from "../../../../utils/constants";
-import { getAuthToken } from "../../../../utils/storage";
 
 const TAGS = {
   restaurante: "Restaurante",
@@ -63,11 +62,13 @@ export default function FacturasScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [sourceModalVisible, setSourceModalVisible] = useState(false);
   const [selectedType, setSelectedType] = useState("gasto");
+  const [selectedDocType, setSelectedDocType] = useState("");
   const [selectedTag, setSelectedTag] = useState("");
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [customNames, setCustomNames] = useState({});
   const [ocrResults, setOcrResults] = useState({});
   const [ocrLoadingMap, setOcrLoadingMap] = useState({});
+  const [previewImage, setPreviewImage] = useState(null);
 
   // --- Emitidas (facturas creadas) ---
   const [canEmit, setCanEmit] = useState(false);
@@ -207,14 +208,29 @@ export default function FacturasScreen() {
     return `${mb.toFixed(1)} MB`;
   };
 
-  const openFile = async (invoice) => {
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  const openInvoicePreview = async (invoiceId, type) => {
     try {
-      const token = await getAuthToken();
-      const url = `${API_URL}/file-download?type=advisory_invoice&id=${invoice.id}&auth_token=${token}`;
-      await Linking.openURL(url);
+      setPreviewLoading(true);
+      const res = await fetchWithAuth("app-invoice-preview", {
+        invoice_id: invoiceId,
+        type,
+      });
+      if (res.status === "ok" && res.data?.html) {
+        router.push({ pathname: "/webview", params: { html: res.data.html } });
+      } else {
+        Alert.alert("Error", res.message || "No se pudo cargar la factura");
+      }
     } catch (_error) {
-      Alert.alert("Error", "No se pudo abrir el archivo");
+      Alert.alert("Error", "No se pudo abrir la factura");
+    } finally {
+      setPreviewLoading(false);
     }
+  };
+
+  const openFile = async (invoice) => {
+    openInvoicePreview(invoice.id, "advisory_invoice");
   };
 
   const showSourcePicker = () => {
@@ -315,14 +331,17 @@ export default function FacturasScreen() {
     }
   };
 
-  const isOcrCompatible = (f) =>
-    f.mimeType === "application/pdf" ||
+  const isImageFile = (f) =>
     f.mimeType === "image/jpeg" ||
     f.mimeType === "image/png" ||
-    f.name?.endsWith(".pdf") ||
     f.name?.endsWith(".jpg") ||
     f.name?.endsWith(".jpeg") ||
     f.name?.endsWith(".png");
+
+  const isOcrCompatible = (f) =>
+    f.mimeType === "application/pdf" ||
+    isImageFile(f) ||
+    f.name?.endsWith(".pdf");
 
   const tryOcrDetection = async (files) => {
     const ocrIndexes = [];
@@ -356,15 +375,25 @@ export default function FacturasScreen() {
           });
           if (res?.status === "ok" && res.data?.fields) {
             const f = res.data.fields;
-            if (f.total_amount || f.base_amount || f.issuer_name) {
-              setOcrResults((prev) => ({
-                ...prev,
-                [idx]: { fields: f, validation: res.data.validation || null },
-              }));
-            }
+            console.log("[FACTURAS] OCR result idx=" + idx + " | docType=" + (f.document_type || "none") + " issuer=" + (f.issuer_name || "null") + " total=" + (f.total_amount || "null") + " nif=" + (f.issuer_nif || "null"));
+            setOcrResults((prev) => ({
+              ...prev,
+              [idx]: { fields: f, validation: res.data.validation || null },
+            }));
+          } else {
+            console.log("[FACTURAS] OCR failed for idx=" + idx + " | status=" + (res?.status || "null"));
+            // OCR failed or returned no fields - mark as failed
+            setOcrResults((prev) => ({
+              ...prev,
+              [idx]: { fields: {}, validation: { status: "error" } },
+            }));
           }
         } catch (_e) {
-          // No OCR for this file
+          // OCR error - mark as failed
+          setOcrResults((prev) => ({
+            ...prev,
+            [idx]: { fields: {}, validation: { status: "error" } },
+          }));
         } finally {
           setOcrLoadingMap((prev) => ({ ...prev, [idx]: false }));
         }
@@ -372,64 +401,211 @@ export default function FacturasScreen() {
     );
   };
 
+  // Auto-detect document type from OCR results (only if user hasn't manually set it)
+  useEffect(() => {
+    if (selectedDocType) return; // user already chose
+    const ocrKeys = Object.keys(ocrResults);
+    if (ocrKeys.length === 0) return;
+    // Use first file's OCR to suggest doc type
+    const firstOcr = ocrResults[ocrKeys[0]];
+    const dt = firstOcr?.fields?.document_type;
+    if (dt === "factura") setSelectedDocType("factura");
+    else if (dt === "factura_simplificada") setSelectedDocType("ticket");
+    else if (dt === "recibo_tpv") setSelectedDocType("recibo_tpv");
+  }, [ocrResults]);
+
   const countOcrFields = (data) => {
     if (!data?.fields) return 0;
     const keys = ['issuer_name', 'issuer_nif', 'total_amount', 'base_amount', 'iva_percent', 'invoice_number'];
     return keys.filter((k) => data.fields[k]).length;
   };
 
-  const uploadInvoice = async (skipOcrCheck) => {
-    if (selectedFiles.length === 0) {
+  const DOC_TYPE_LABELS = {
+    factura: "Factura",
+    factura_simplificada: "Factura simplificada (ticket)",
+    recibo_tpv: "Recibo de TPV",
+    otro: "Documento",
+  };
+
+  const renderOcrResult = (ocr) => {
+    if (!ocr?.fields) return null;
+    const fieldCount = countOcrFields(ocr);
+    const docType = ocr.fields.document_type || null;
+    const isTPV = docType === "recibo_tpv";
+    const isVerified = !isTPV && ocr.validation?.status === "ok";
+    const isNone = !isTPV && fieldCount === 0;
+    const bgColor = isTPV ? "bg-amber-50" : isNone ? "bg-red-50" : "bg-blue-50";
+
+    const badgeColor = isTPV ? "#d97706" : isVerified ? "#059669" : isNone ? "#ef4444" : "#d97706";
+    const badgeText = isTPV
+      ? "⚠ No es factura"
+      : isVerified
+        ? "✓ Verificada"
+        : isNone
+          ? "✕ Sin datos detectados"
+          : "⚠ Parcial";
+
+    return (
+      <View className={`p-2 rounded-lg mt-2 ${bgColor}`}>
+        {isTPV ? (
+          <View>
+            <Text className="text-amber-700 text-xs font-semibold mb-1">
+              Recibo de pago con tarjeta (no es factura)
+            </Text>
+            {ocr.fields.issuer_name ? (
+              <Text className="text-gray-600 text-xs">
+                {ocr.fields.issuer_name}
+                {ocr.fields.total_amount ? ` · ${parseFloat(ocr.fields.total_amount).toFixed(2)} €` : ""}
+              </Text>
+            ) : null}
+            <Text className="text-amber-600 text-xs mt-1">
+              Pide la factura al comercio para deducir el IVA
+            </Text>
+          </View>
+        ) : isVerified ? (
+          <View>
+            {docType && docType !== "factura" ? (
+              <Text className="text-gray-400 text-xs mb-0.5">{DOC_TYPE_LABELS[docType] || docType}</Text>
+            ) : null}
+            <Text className="text-gray-600 text-xs">
+              {ocr.fields.issuer_name
+                ? `${ocr.fields.issuer_name}${ocr.fields.issuer_nif ? ` (${ocr.fields.issuer_nif})` : ""}`
+                : ""}
+              {ocr.fields.total_amount
+                ? `${ocr.fields.issuer_name ? " · " : ""}${parseFloat(ocr.fields.total_amount).toFixed(2)} EUR`
+                : ""}
+            </Text>
+          </View>
+        ) : (
+          <View>
+            {docType ? (
+              <Text className="text-gray-400 text-xs mb-1">{DOC_TYPE_LABELS[docType] || docType}</Text>
+            ) : null}
+            {[
+              { key: "issuer_name", label: "Emisor" },
+              { key: "issuer_nif", label: "NIF emisor" },
+              { key: "invoice_number", label: "Nº factura" },
+              { key: "total_amount", label: "Total", format: (v) => `${parseFloat(v).toFixed(2)} €` },
+              { key: "base_amount", label: "Base imponible", format: (v) => `${parseFloat(v).toFixed(2)} €` },
+              { key: "iva_percent", label: "IVA", format: (v) => `${v}%` },
+            ].map(({ key, label, format }) => (
+              <View key={key} className="flex-row items-center mb-0.5">
+                <Text style={{ color: ocr.fields[key] ? "#059669" : "#ef4444", fontSize: 11 }}>
+                  {ocr.fields[key] ? "✓" : "✗"}
+                </Text>
+                <Text className="text-xs ml-1" style={{ color: ocr.fields[key] ? "#374151" : "#9ca3af" }}>
+                  {label}{ocr.fields[key] ? `: ${format ? format(ocr.fields[key]) : ocr.fields[key]}` : ""}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+        <View className="flex-row items-center mt-1">
+          <Text className="text-xs font-semibold" style={{ color: badgeColor }}>
+            {badgeText}
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
+  const uploadInvoice = async (skipOcrCheck, overrideFiles, overrideNames, overrideOcr) => {
+    const files = overrideFiles || selectedFiles;
+    const names = overrideNames || customNames;
+    const ocr = overrideOcr || ocrResults;
+
+    if (files.length === 0) {
       Alert.alert("Error", "Selecciona al menos un archivo");
       return;
     }
 
-    // Verificar archivos con OCR pobre (menos de 2 campos detectados)
+    // Verificar archivos con OCR pobre (menos de 2 campos detectados o sin OCR)
     if (!skipOcrCheck) {
-      const poorOcrFiles = [];
-      selectedFiles.forEach((file, idx) => {
-        if (isOcrCompatible(file) && ocrResults[idx] && countOcrFields(ocrResults[idx]) < 2) {
-          poorOcrFiles.push(customNames[idx] || file.name);
+      const poorIndexes = [];
+      const goodIndexes = [];
+      files.forEach((file, idx) => {
+        if (isOcrCompatible(file)) {
+          const isTPV = ocr[idx]?.fields?.document_type === "recibo_tpv";
+          if (isTPV || !ocr[idx] || countOcrFields(ocr[idx]) < 2) {
+            poorIndexes.push(idx);
+          } else {
+            goodIndexes.push(idx);
+          }
+        } else {
+          goodIndexes.push(idx);
         }
       });
-      if (poorOcrFiles.length > 0) {
+
+      if (poorIndexes.length > 0) {
+        const poorNames = poorIndexes.map((i) => names[i] || files[i].name);
+        const goodCount = goodIndexes.length;
+
+        const buttons = [{ text: "Volver", style: "cancel" }];
+
+        if (goodCount > 0) {
+          buttons.push({
+            text: `Enviar ${goodCount} correcta${goodCount > 1 ? "s" : ""}`,
+            onPress: () => {
+              // Build filtered data and upload directly (no stale closure)
+              const newFiles = goodIndexes.map((i) => files[i]);
+              const newNames = {};
+              const newOcr = {};
+              goodIndexes.forEach((oldIdx, newIdx) => {
+                if (names[oldIdx]) newNames[newIdx] = names[oldIdx];
+                if (ocr[oldIdx]) newOcr[newIdx] = ocr[oldIdx];
+              });
+              // Update UI state
+              setSelectedFiles(newFiles);
+              setCustomNames(newNames);
+              setOcrResults(newOcr);
+              setOcrLoadingMap({});
+              // Upload with filtered data directly
+              uploadInvoice(true, newFiles, newNames, newOcr);
+            },
+          });
+        }
+
         Alert.alert(
-          "Datos incompletos",
-          `No se han detectado suficientes datos en: ${poorOcrFiles.join(", ")}.\n\n¿Enviar de todos modos?`,
-          [
-            { text: "Cancelar", style: "cancel" },
-            { text: "Enviar", onPress: () => uploadInvoice(true) },
-          ],
+          "Archivos con problemas",
+          `${poorNames.join(", ")} no se ha${poorIndexes.length > 1 ? "n" : ""} podido leer correctamente.\n\n${
+            goodCount > 0
+              ? `Puedes enviar las ${goodCount} restante${goodCount > 1 ? "s" : ""} o volver para quitar/repetir las fotos.`
+              : "Vuelve para quitar o repetir las fotos."
+          }`,
+          buttons,
         );
         return;
       }
     }
-
     setUploading(true);
 
     try {
       const formData = new FormData();
 
-      selectedFiles.forEach((file, index) => {
+      files.forEach((file, index) => {
         formData.append("invoice_file[]", {
           uri: file.uri,
           name: file.name,
           type: file.mimeType || "application/octet-stream",
         });
-        const displayName = customNames[index] || file.name;
+        const displayName = names[index] || file.name;
         formData.append("custom_names[]", displayName);
       });
 
       formData.append("type", selectedType);
+      if (selectedDocType) {
+        formData.append("document_type", selectedDocType);
+      }
       if (selectedTag) {
         formData.append("tag", selectedTag);
       }
 
       // Enviar datos OCR por archivo (indexado por posición)
-      if (Object.keys(ocrResults).length > 0) {
+      if (Object.keys(ocr).length > 0) {
         const ocrArray = {};
-        Object.entries(ocrResults).forEach(([idx, data]) => {
+        Object.entries(ocr).forEach(([idx, data]) => {
           ocrArray[idx] = {
+            document_type: data.fields.document_type || null,
             issuer_name: data.fields.issuer_name || null,
             issuer_nif: data.fields.issuer_nif || null,
             total_amount: data.fields.total_amount || null,
@@ -461,6 +637,7 @@ export default function FacturasScreen() {
         setOcrResults({});
         setOcrLoadingMap({});
         setSelectedType("gasto");
+        setSelectedDocType("");
         setSelectedTag("");
         loadInvoices();
       }
@@ -473,13 +650,7 @@ export default function FacturasScreen() {
 
   // Abrir PDF de factura emitida
   const openIssuedInvoicePdf = async (invoice) => {
-    try {
-      const token = await getAuthToken();
-      const url = `${API_URL}/file-download?type=issued_invoice&id=${invoice.id}&auth_token=${token}`;
-      await Linking.openURL(url);
-    } catch (_error) {
-      Alert.alert("Error", "No se pudo abrir el PDF de la factura");
-    }
+    openInvoicePreview(invoice.id, "issued_invoice");
   };
 
   // Cambiar estado de factura (emitida → pagada/anulada)
@@ -741,7 +912,7 @@ export default function FacturasScreen() {
         </View>
       </TouchableOpacity>
     );
-  }, []);
+  }, [showIssuedInvoiceOptions]);
 
   const keyExtractor = useCallback((item) => item.id.toString(), []);
   const issuedKeyExtractor = useCallback((item) => `issued-${item.id}`, []);
@@ -875,6 +1046,12 @@ export default function FacturasScreen() {
 
   return (
     <View className="flex-1 bg-background">
+      {/* Loading overlay for invoice preview */}
+      {previewLoading && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)', zIndex: 999, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#30D4D1" />
+        </View>
+      )}
       {/* Header */}
       <View className="p-5 pb-0">
         <TouchableOpacity
@@ -1048,7 +1225,9 @@ export default function FacturasScreen() {
                 setModalVisible(false);
                 setSelectedFiles([]);
                 setCustomNames({});
-                setOcrData(null);
+                setOcrResults({});
+                setOcrLoadingMap({});
+                setSelectedDocType("");
               }}
               className="mr-3"
               accessibilityLabel="Cerrar"
@@ -1088,30 +1267,36 @@ export default function FacturasScreen() {
                       className="bg-white p-3 rounded-xl mb-2"
                     >
                       <View className="flex-row items-center mb-2">
-                        <Text className="text-xl mr-3">📄</Text>
+                        {isImageFile(file) ? (
+                          <TouchableOpacity onPress={() => setPreviewImage(file.uri)} className="mr-3">
+                            <Image
+                              source={{ uri: file.uri }}
+                              style={{ width: 36, height: 36, borderRadius: 6 }}
+                              resizeMode="cover"
+                            />
+                          </TouchableOpacity>
+                        ) : (
+                          <Text className="text-xl mr-3">📄</Text>
+                        )}
                         <Text className="flex-1 text-gray-400 text-xs" numberOfLines={1}>
                           {file.name}
                         </Text>
                         <TouchableOpacity
                           onPress={() => {
-                            setSelectedFiles((prev) =>
-                              prev.filter((_, i) => i !== index),
-                            );
-                            setCustomNames((prev) => {
-                              const newNames = { ...prev };
-                              delete newNames[index];
-                              return newNames;
-                            });
-                            setOcrResults((prev) => {
-                              const next = { ...prev };
-                              delete next[index];
+                            const removed = index;
+                            setSelectedFiles((prev) => prev.filter((_, i) => i !== removed));
+                            const reindex = (prev) => {
+                              const next = {};
+                              Object.entries(prev).forEach(([k, v]) => {
+                                const ki = parseInt(k, 10);
+                                if (ki < removed) next[ki] = v;
+                                else if (ki > removed) next[ki - 1] = v;
+                              });
                               return next;
-                            });
-                            setOcrLoadingMap((prev) => {
-                              const next = { ...prev };
-                              delete next[index];
-                              return next;
-                            });
+                            };
+                            setCustomNames(reindex);
+                            setOcrResults(reindex);
+                            setOcrLoadingMap(reindex);
                           }}
                           accessibilityLabel="Eliminar archivo"
                           accessibilityRole="button"
@@ -1139,30 +1324,7 @@ export default function FacturasScreen() {
                         </View>
                       )}
                       {/* Per-file OCR result */}
-                      {ocrResults[index] && !ocrLoadingMap[index] && (
-                        <View className="bg-blue-50 p-2 rounded-lg mt-2">
-                          <Text className="text-gray-600 text-xs">
-                            {ocrResults[index].fields.issuer_name
-                              ? `${ocrResults[index].fields.issuer_name}${ocrResults[index].fields.issuer_nif ? ` (${ocrResults[index].fields.issuer_nif})` : ""}`
-                              : ""}
-                            {ocrResults[index].fields.total_amount
-                              ? `${ocrResults[index].fields.issuer_name ? " · " : ""}${ocrResults[index].fields.total_amount.toFixed(2)} EUR`
-                              : ""}
-                          </Text>
-                          {ocrResults[index].validation && (
-                            <View className="flex-row items-center mt-1">
-                              <Text
-                                className="text-xs font-semibold"
-                                style={{
-                                  color: ocrResults[index].validation.status === "ok" ? "#059669" : "#d97706",
-                                }}
-                              >
-                                {ocrResults[index].validation.status === "ok" ? "✓ Verificada" : "⚠ Parcial"}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                      )}
+                      {ocrResults[index] && !ocrLoadingMap[index] && renderOcrResult(ocrResults[index])}
                     </View>
                   ))}
                 </ScrollView>
@@ -1207,6 +1369,32 @@ export default function FacturasScreen() {
               </TouchableOpacity>
             </View>
 
+            <Text className="font-semibold mb-2">Documento</Text>
+            <View className="flex-row gap-3 mb-5">
+              {[
+                { key: "factura", label: "Factura", border: "border-blue-500", bg: "bg-blue-50", text: "text-blue-600" },
+                { key: "ticket", label: "Ticket", border: "border-amber-500", bg: "bg-amber-50", text: "text-amber-600" },
+              ].map((opt) => (
+                <TouchableOpacity
+                  key={opt.key}
+                  className={`flex-1 p-4 rounded-xl border-2 items-center ${
+                    selectedDocType === opt.key
+                      ? `${opt.border} ${opt.bg}`
+                      : "border-gray-200 bg-white"
+                  }`}
+                  onPress={() => setSelectedDocType(selectedDocType === opt.key ? "" : opt.key)}
+                >
+                  <Text
+                    className={`font-semibold ${
+                      selectedDocType === opt.key ? opt.text : "text-gray-600"
+                    }`}
+                  >
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             <Text className="font-semibold mb-2">Etiqueta (opcional)</Text>
             <View className="flex-row flex-wrap gap-2 mb-6">
               {Object.entries(TAGS).map(([key, label]) => (
@@ -1234,7 +1422,7 @@ export default function FacturasScreen() {
                   ? "bg-gray-300"
                   : "bg-primary"
               }`}
-              onPress={uploadInvoice}
+              onPress={() => uploadInvoice(false)}
               disabled={uploading || selectedFiles.length === 0 || Object.values(ocrLoadingMap).some(Boolean)}
             >
               {uploading ? (
@@ -1250,6 +1438,25 @@ export default function FacturasScreen() {
               )}
             </TouchableOpacity>
           </ScrollView>
+
+          {/* Overlay preview imagen (dentro del modal para que funcione en iOS y Android) */}
+          {!!previewImage && (
+            <TouchableOpacity
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.92)', zIndex: 9999, justifyContent: 'center', alignItems: 'center' }}
+              activeOpacity={1}
+              onPress={() => setPreviewImage(null)}
+            >
+              <Image
+                source={{ uri: previewImage }}
+                style={{
+                  width: Dimensions.get("window").width - 40,
+                  height: Dimensions.get("window").height * 0.7,
+                }}
+                resizeMode="contain"
+              />
+              <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 16 }}>Toca para cerrar</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </Modal>
 
@@ -1321,6 +1528,7 @@ export default function FacturasScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
     </View>
   );
 }

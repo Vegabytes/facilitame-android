@@ -10,6 +10,8 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAuth } from "../../../../context/AuthContext";
@@ -270,7 +272,12 @@ export default function MiCuentaScreen() {
   }
 
   return (
-    <ScrollView className="bg-background p-4">
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      className="flex-1"
+      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 20}
+    >
+    <ScrollView className="bg-background p-4" keyboardShouldPersistTaps="handled">
       {/* Tarjeta de perfil */}
       <TouchableOpacity onPress={pickProfileImage} activeOpacity={0.8}>
         <Card variant="primary" className="flex-row gap-4 items-center">
@@ -321,6 +328,68 @@ export default function MiCuentaScreen() {
         </Button>
       </Card>
 
+      {/* Tipo de cuenta */}
+      {pageData?.role && ["particular", "autonomo", "empresa"].includes(pageData.role) && (
+        <Card title="Tipo de cuenta">
+          <Text className="text-gray-500 text-sm mb-3">
+            Selecciona el tipo que mejor se ajuste a tu situación
+          </Text>
+          <View className="flex-row gap-2">
+            {[
+              { value: "particular", label: "Particular" },
+              { value: "autonomo", label: "Autónomo" },
+              { value: "empresa", label: "Empresa" },
+            ].map((opt) => (
+              <TouchableOpacity
+                key={opt.value}
+                className={`flex-1 py-3 rounded-xl border-2 items-center ${
+                  pageData.role === opt.value
+                    ? "border-[#30D4D1] bg-[#30D4D1]/10"
+                    : "border-gray-200"
+                }`}
+                onPress={async () => {
+                  if (opt.value === pageData.role) return;
+                  try {
+                    const response = await fetchWithAuth(
+                      "app-user-profile-details-update",
+                      {
+                        name: name.trim(),
+                        lastname: lastname.trim(),
+                        email: email.trim(),
+                        role: opt.value,
+                      }
+                    );
+                    if (response && response.status === "ok") {
+                      setPageData((prev) => ({
+                        ...prev,
+                        role: opt.value,
+                        role_display:
+                          opt.value === "particular"
+                            ? "Particular"
+                            : opt.value === "autonomo"
+                            ? "Autónomo"
+                            : "Empresa",
+                      }));
+                      Alert.alert("", "Tipo de cuenta actualizado");
+                    }
+                  } catch (_error) {
+                    Alert.alert("Error", "No se pudo actualizar el tipo de cuenta");
+                  }
+                }}
+              >
+                <Text
+                  className={`font-semibold text-sm ${
+                    pageData.role === opt.value ? "text-[#30D4D1]" : "text-gray-600"
+                  }`}
+                >
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Card>
+      )}
+
       {/* Formulario de contraseña */}
       <Card title="Contraseña" className="mb-12">
         <Input
@@ -352,5 +421,6 @@ export default function MiCuentaScreen() {
         </Button>
       </Card>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

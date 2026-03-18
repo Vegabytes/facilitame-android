@@ -334,7 +334,7 @@ export default function CitaDetailScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1 bg-background"
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 20}
       >
         {/* Chat Header */}
         <View className="bg-white p-4 flex-row items-center border-b border-gray-100">

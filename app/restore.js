@@ -13,6 +13,7 @@ import {
   Platform,
   ActivityIndicator,
   TouchableOpacity,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { fetchPublic } from "../utils/api";
@@ -162,6 +163,10 @@ export default function RestoreScreen() {
       className="flex-1"
       style={{ paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0 }}
     >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        className="flex-1"
+      >
       <ScrollView
         className="bg-background p-4"
         contentContainerStyle={{
@@ -230,6 +235,7 @@ export default function RestoreScreen() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

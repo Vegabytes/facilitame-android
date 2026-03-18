@@ -10,6 +10,7 @@ import {
   Text,
   StatusBar,
   Platform,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { fetchPublic } from "../../utils/api";
@@ -69,6 +70,10 @@ export default function PasswordRecoveryScreen() {
         paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
       }}
     >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        className="flex-1"
+      >
       <ScrollView
         className="bg-background p-4"
         contentContainerStyle={{
@@ -113,6 +118,7 @@ export default function PasswordRecoveryScreen() {
           Recuperar contraseña
         </Button>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

@@ -91,7 +91,7 @@ android {
         applicationId 'com.boldsoftware.facilitameandroid'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 78
+        versionCode 83
         versionName "1.5.0"
     }
     signingConfigs {
