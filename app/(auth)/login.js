@@ -114,13 +114,15 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       className="flex-1"
+      keyboardVerticalOffset={Platform.OS === "ios" ? 120 : 0}
     >
     <ScrollView
       className="flex-1 bg-primary"
       contentContainerStyle={{ flexGrow: 1, justifyContent: "center", alignItems: "center", padding: 20 }}
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="interactive"
     >
       {/* Logo con texto */}
       <View className="w-full aspect-[500/82] self-center">
