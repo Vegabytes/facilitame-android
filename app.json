@@ -21,7 +21,7 @@
     "ios": {
       "bundleIdentifier": "com.boldsoftware.facilitame",
       "supportsTablet": true,
-      "buildNumber": "40",
+      "buildNumber": "41",
       "associatedDomains": [
         "applinks:app.facilitame.es",
         "webcredentials:app.facilitame.es"
