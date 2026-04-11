@@ -293,9 +293,9 @@ export default function TuAsesorScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior="padding"
       className="flex-1 bg-background"
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 20}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 120 : 100}
     >
       {/* Header */}
       <View className="bg-white p-4 flex-row items-center border-b border-gray-100">

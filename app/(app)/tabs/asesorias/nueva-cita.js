@@ -262,8 +262,9 @@ export default function NuevaCitaScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior="padding"
       className="flex-1"
+      keyboardVerticalOffset={Platform.OS === "ios" ? 120 : 100}
     >
       <ScrollView className="flex-1 bg-background">
         <View className="p-5">

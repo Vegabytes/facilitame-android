@@ -164,8 +164,9 @@ export default function RestoreScreen() {
       style={{ paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0 }}
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior="padding"
         className="flex-1"
+        keyboardVerticalOffset={Platform.OS === "ios" ? 120 : 100}
       >
       <ScrollView
         className="bg-background p-4"

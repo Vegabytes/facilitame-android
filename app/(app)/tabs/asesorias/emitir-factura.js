@@ -68,10 +68,23 @@ export default function EmitirFacturaScreen() {
   const [invoiceDate, setInvoiceDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [tempDate, setTempDate] = useState(null);
+  const [dueDate, setDueDate] = useState(null);
+  const [showDueDatePicker, setShowDueDatePicker] = useState(false);
+  const [tempDueDate, setTempDueDate] = useState(null);
   const [lines, setLines] = useState([emptyLine()]);
   const [irpfRate, setIrpfRate] = useState(0);
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState({});
+
+  // Series
+  const [series, setSeries] = useState([]);
+  const [selectedSeriesId, setSelectedSeriesId] = useState(null);
+  const [loadingSeries, setLoadingSeries] = useState(true);
+  const [showSeriesPicker, setShowSeriesPicker] = useState(false);
+  const [showNewSeriesModal, setShowNewSeriesModal] = useState(false);
+  const [newSeriesPrefix, setNewSeriesPrefix] = useState("");
+  const [newSeriesFormat, setNewSeriesFormat] = useState("{prefix}{number}");
+  const [savingSeries, setSavingSeries] = useState(false);
 
   // Load clients (only for advisory users; clients skip this)
   useFocusEffect(
@@ -121,8 +134,78 @@ export default function EmitirFacturaScreen() {
         }
       };
       loadClients();
+      loadSeries();
     }, []),
   );
+
+  // Load series (asesoría: todas; cliente: las suyas + generales)
+  const loadSeries = async () => {
+    setLoadingSeries(true);
+    try {
+      const fd = new FormData();
+      fd.append("action", "list");
+      const res = await fetchWithAuth(
+        "advisory-invoice-series-manage",
+        fd,
+        { silent: true, isFormData: true },
+      );
+      if (res?.status === "ok" && Array.isArray(res.data?.series)) {
+        setSeries(res.data.series);
+        // Auto-seleccionar la primera serie general si hay alguna
+        if (res.data.series.length > 0 && !selectedSeriesId) {
+          const general = res.data.series.find((s) => !s.customer_id);
+          setSelectedSeriesId(general ? general.id : res.data.series[0].id);
+        }
+      }
+    } catch (_e) {
+      // silent
+    } finally {
+      setLoadingSeries(false);
+    }
+  };
+
+  // Crear nueva serie (asesoría o cliente)
+  const handleCreateSeries = async () => {
+    const prefix = newSeriesPrefix.trim().toUpperCase();
+    if (!prefix) {
+      Alert.alert("Falta el prefijo", "Indica un prefijo (ej: F, A, R)");
+      return;
+    }
+    if (!/^[A-Z0-9\-]+$/.test(prefix)) {
+      Alert.alert(
+        "Prefijo no válido",
+        "Solo se permiten letras, números y guiones",
+      );
+      return;
+    }
+    setSavingSeries(true);
+    try {
+      const fd = new FormData();
+      fd.append("prefix", prefix);
+      fd.append("format", newSeriesFormat.trim() || "{prefix}{number}");
+      const res = await fetchWithAuth("advisory-invoice-series-manage", fd, {
+        isFormData: true,
+        silent: true,
+      });
+      if (res?.status === "ok") {
+        const newId = res.data?.series_id;
+        setShowNewSeriesModal(false);
+        setNewSeriesPrefix("");
+        setNewSeriesFormat("{prefix}{number}");
+        await loadSeries();
+        if (newId) setSelectedSeriesId(newId);
+      } else {
+        Alert.alert(
+          "Error",
+          res?.message_plain || "No se pudo crear la serie",
+        );
+      }
+    } catch (_e) {
+      Alert.alert("Error", "Error de conexión al crear la serie");
+    } finally {
+      setSavingSeries(false);
+    }
+  };
 
   // Line management
   const updateLine = (index, field, value) => {
@@ -191,6 +274,23 @@ export default function EmitirFacturaScreen() {
     setTempDate(null);
   };
 
+  const onDueDateChange = (event, date) => {
+    if (Platform.OS === "android") {
+      setShowDueDatePicker(false);
+      if (date) setDueDate(date);
+    } else {
+      if (date) setTempDueDate(date);
+    }
+  };
+
+  const confirmDueDateIOS = () => {
+    if (tempDueDate) setDueDate(tempDueDate);
+    setShowDueDatePicker(false);
+    setTempDueDate(null);
+  };
+
+  const selectedSeries = series.find((s) => s.id === selectedSeriesId);
+
   // Validation
   const validateForm = () => {
     const newErrors = {};
@@ -204,6 +304,13 @@ export default function EmitirFacturaScreen() {
     }
 
     if (!invoiceDate) newErrors.date = "Selecciona una fecha";
+
+    // Serie obligatoria: si hay series disponibles, seleccionar una; si no, crear.
+    if (!selectedSeriesId && series.length > 0) {
+      newErrors.series = "Selecciona una serie de facturación";
+    } else if (!selectedSeriesId && series.length === 0) {
+      newErrors.series = "Crea una serie antes de emitir (botón + Nueva)";
+    }
 
     const hasValidLine = lines.some(
       (l) =>
@@ -279,6 +386,15 @@ export default function EmitirFacturaScreen() {
       }
 
       formData.append("invoice_date", dateStr);
+      if (dueDate) {
+        const dy = dueDate.getFullYear();
+        const dm = String(dueDate.getMonth() + 1).padStart(2, "0");
+        const dd = String(dueDate.getDate()).padStart(2, "0");
+        formData.append("due_date", `${dy}-${dm}-${dd}`);
+      }
+      if (selectedSeriesId) {
+        formData.append("series_id", selectedSeriesId);
+      }
       formData.append("tax_rate", totals.taxRate);
       formData.append("irpf_rate", irpfRate);
       formData.append("notes", notes.trim());
@@ -373,8 +489,9 @@ export default function EmitirFacturaScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior="padding"
       className="flex-1"
+      keyboardVerticalOffset={Platform.OS === "ios" ? 120 : 100}
     >
       <ScrollView
         className="flex-1 bg-background"
@@ -563,6 +680,118 @@ export default function EmitirFacturaScreen() {
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={confirmDateIOS}
+                        className="px-4 py-2"
+                      >
+                        <Text className="text-primary text-base font-semibold">
+                          Confirmar
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              </Modal>
+            )}
+          </View>
+
+          {/* Series */}
+          <View className="bg-white p-5 rounded-2xl mb-4">
+            <View className="flex-row items-center justify-between mb-3">
+              <Text className="font-bold text-lg">Serie de facturación *</Text>
+              <TouchableOpacity
+                onPress={() => setShowNewSeriesModal(true)}
+                accessibilityLabel="Crear nueva serie"
+              >
+                <Text className="text-primary font-medium">+ Nueva</Text>
+              </TouchableOpacity>
+            </View>
+            {errors.series && (
+              <Text className="text-red-500 text-sm mb-2">{errors.series}</Text>
+            )}
+            <TouchableOpacity
+              className={`h-14 px-4 bg-white rounded-2xl border-2 justify-center ${
+                errors.series ? "border-red-500" : "border-bright"
+              }`}
+              onPress={() => setShowSeriesPicker(true)}
+              disabled={loadingSeries}
+            >
+              <Text className={selectedSeries ? "text-black" : "text-gray-400"}>
+                {loadingSeries
+                  ? "Cargando series..."
+                  : selectedSeries
+                    ? `${selectedSeries.prefix} — ${selectedSeries.customer_name}`
+                    : series.length === 0
+                      ? "No hay series — pulsa + Nueva"
+                      : "Selecciona una serie..."}
+              </Text>
+            </TouchableOpacity>
+            {selectedSeries && (
+              <Text className="text-xs text-gray-400 mt-1">
+                Próximo número: {selectedSeries.prefix}
+                {selectedSeries.next_number}
+              </Text>
+            )}
+          </View>
+
+          {/* Due date */}
+          <View className="bg-white p-5 rounded-2xl mb-4">
+            <View className="flex-row items-center justify-between mb-3">
+              <Text className="font-bold text-lg">Fecha de vencimiento</Text>
+              {dueDate && (
+                <TouchableOpacity
+                  onPress={() => setDueDate(null)}
+                  accessibilityLabel="Quitar fecha de vencimiento"
+                >
+                  <Text className="text-red-500 font-medium text-sm">
+                    Quitar
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <TouchableOpacity
+              className="h-14 px-4 bg-white rounded-2xl border-2 border-bright justify-center"
+              onPress={() => setShowDueDatePicker(true)}
+            >
+              <Text className={dueDate ? "text-black" : "text-gray-400"}>
+                {dueDate ? formatDisplayDate(dueDate) : "Sin vencimiento (opcional)"}
+              </Text>
+            </TouchableOpacity>
+
+            {showDueDatePicker && Platform.OS === "android" && (
+              <DateTimePicker
+                value={dueDate || new Date()}
+                mode="date"
+                display="default"
+                onChange={onDueDateChange}
+                locale="es-ES"
+              />
+            )}
+
+            {showDueDatePicker && Platform.OS === "ios" && (
+              <Modal transparent animationType="fade" visible={showDueDatePicker}>
+                <View className="flex-1 justify-end bg-black/40">
+                  <View className="bg-white p-4 rounded-t-xl">
+                    <DateTimePicker
+                      value={tempDueDate || dueDate || new Date()}
+                      mode="date"
+                      display="spinner"
+                      onChange={onDueDateChange}
+                      locale="es-ES"
+                      textColor="#000"
+                    />
+                    <View className="flex-row justify-between mt-2 mb-6">
+                      <TouchableOpacity
+                        onPress={() => {
+                          setShowDueDatePicker(false);
+                          setTempDueDate(null);
+                        }}
+                        className="px-4 py-2"
+                      >
+                        <Text className="text-red-500 text-base">
+                          Cancelar
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={confirmDueDateIOS}
                         className="px-4 py-2"
                       >
                         <Text className="text-primary text-base font-semibold">
@@ -858,6 +1087,132 @@ export default function EmitirFacturaScreen() {
               ))
             )}
           </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Series picker modal */}
+      <Modal
+        visible={showSeriesPicker}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <View className="flex-1 bg-background">
+          <View className="p-5 pb-3 border-b border-gray-200 bg-white flex-row items-center justify-between">
+            <Text className="text-xl font-extrabold">Seleccionar serie</Text>
+            <TouchableOpacity onPress={() => setShowSeriesPicker(false)}>
+              <Text className="text-red-500 font-medium text-base">Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView className="flex-1 p-5">
+            {loadingSeries ? (
+              <Text className="text-gray-500 text-center py-10">
+                Cargando series...
+              </Text>
+            ) : series.length === 0 ? (
+              <View className="items-center py-10">
+                <Text className="text-gray-500 text-center mb-3">
+                  No hay series creadas
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowSeriesPicker(false);
+                    setShowNewSeriesModal(true);
+                  }}
+                >
+                  <Text className="text-primary font-medium">
+                    + Crear primera serie
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              series.map((s) => (
+                <TouchableOpacity
+                  key={s.id}
+                  className={`bg-white p-4 rounded-xl mb-2 border-2 ${
+                    selectedSeriesId === s.id
+                      ? "border-primary"
+                      : "border-transparent"
+                  }`}
+                  onPress={() => {
+                    setSelectedSeriesId(s.id);
+                    setShowSeriesPicker(false);
+                    setErrors((e) => ({ ...e, series: null }));
+                  }}
+                >
+                  <View className="flex-row items-center justify-between">
+                    <Text className="font-bold text-base">{s.prefix}</Text>
+                    <Text className="text-xs text-gray-500">
+                      Próx: {s.prefix}
+                      {s.next_number}
+                    </Text>
+                  </View>
+                  <Text className="text-gray-500 text-sm mt-1">
+                    {s.customer_name}
+                  </Text>
+                </TouchableOpacity>
+              ))
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* New series modal */}
+      <Modal
+        visible={showNewSeriesModal}
+        animationType="fade"
+        transparent
+      >
+        <View className="flex-1 justify-center items-center bg-black/50 p-5">
+          <View className="bg-white rounded-2xl p-5 w-full">
+            <Text className="text-xl font-extrabold mb-1">Nueva serie</Text>
+            <Text className="text-gray-500 text-sm mb-4">
+              Crea una serie general para numerar tus facturas
+            </Text>
+
+            <Text className="text-xs text-gray-500 mb-1">Prefijo *</Text>
+            <TextInput
+              className="h-12 px-4 bg-gray-50 rounded-xl border border-gray-200 mb-3"
+              value={newSeriesPrefix}
+              onChangeText={setNewSeriesPrefix}
+              placeholder="Ej: F, A, R, 2026-"
+              autoCapitalize="characters"
+              maxLength={10}
+            />
+
+            <Text className="text-xs text-gray-500 mb-1">Formato</Text>
+            <TextInput
+              className="h-12 px-4 bg-gray-50 rounded-xl border border-gray-200 mb-1"
+              value={newSeriesFormat}
+              onChangeText={setNewSeriesFormat}
+              placeholder="{prefix}{number}"
+              autoCapitalize="none"
+            />
+            <Text className="text-xs text-gray-400 mb-4">
+              Usa {"{prefix}"} y {"{number}"} (ej: F1, F2...)
+            </Text>
+
+            <View className="flex-row gap-2">
+              <TouchableOpacity
+                className="flex-1 py-3 rounded-xl border-2 border-gray-200 items-center"
+                onPress={() => {
+                  setShowNewSeriesModal(false);
+                  setNewSeriesPrefix("");
+                }}
+                disabled={savingSeries}
+              >
+                <Text className="font-medium text-gray-600">Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="flex-1 py-3 rounded-xl bg-primary items-center"
+                onPress={handleCreateSeries}
+                disabled={savingSeries}
+              >
+                <Text className="font-bold text-white">
+                  {savingSeries ? "Creando..." : "Crear"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </Modal>
     </KeyboardAvoidingView>
