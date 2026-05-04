@@ -432,22 +432,31 @@ export default function FacturasScreen() {
     const fieldCount = countOcrFields(ocr);
     const docType = ocr.fields.document_type || null;
     const isTPV = docType === "recibo_tpv";
-    const isVerified = !isTPV && ocr.validation?.status === "ok";
-    const isNone = !isTPV && fieldCount === 0;
-    const bgColor = isTPV ? "bg-amber-50" : isNone ? "bg-red-50" : "bg-blue-50";
+    const isApiError = ocr.validation?.status === "api_error" || ocr.validation?.status === "error";
+    const isVerified = !isTPV && !isApiError && ocr.validation?.status === "ok";
+    const isNone = !isTPV && !isApiError && fieldCount === 0;
+    const bgColor = isApiError ? "bg-orange-50" : isTPV ? "bg-amber-50" : isNone ? "bg-red-50" : "bg-blue-50";
 
-    const badgeColor = isTPV ? "#d97706" : isVerified ? "#059669" : isNone ? "#ef4444" : "#d97706";
-    const badgeText = isTPV
-      ? "⚠ No es factura"
-      : isVerified
-        ? "✓ Verificada"
-        : isNone
-          ? "✕ Sin datos detectados"
-          : "⚠ Parcial";
+    const badgeColor = isApiError ? "#ea580c" : isTPV ? "#d97706" : isVerified ? "#059669" : isNone ? "#ef4444" : "#d97706";
+    const badgeText = isApiError
+      ? "⚠ Error al leer — vuelve a intentarlo"
+      : isTPV
+        ? "⚠ No es factura"
+        : isVerified
+          ? "✓ Verificada"
+          : isNone
+            ? "✕ Sin datos detectados"
+            : "⚠ Parcial";
 
     return (
       <View className={`p-2 rounded-lg mt-2 ${bgColor}`}>
-        {isTPV ? (
+        {isApiError ? (
+          <View>
+            <Text className="text-orange-700 text-xs">
+              No se pudo analizar esta imagen ahora mismo. Puedes volver a subir el archivo o enviarla tal cual.
+            </Text>
+          </View>
+        ) : isTPV ? (
           <View>
             <Text className="text-amber-700 text-xs font-semibold mb-1">
               Recibo de pago con tarjeta (no es factura)
