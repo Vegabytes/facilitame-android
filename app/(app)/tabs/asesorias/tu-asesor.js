@@ -346,9 +346,14 @@ export default function TuAsesorScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      // 17/05 (Erlantz noche): el input se ocultaba bajo el teclado al abrir
+      // el chat. Causa: en Android, app.json tiene softwareKeyboardLayoutMode
+      // "adjustResize" que ya redimensiona la ventana, y KeyboardAvoidingView
+      // con behavior="height" duplicaba el ajuste -> el input quedaba debajo.
+      // Solucion: usar KAV solo en iOS, dejar que Android lo maneje nativo.
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       className="flex-1 bg-background"
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 20}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
       {/* Header */}
       <View className="bg-white p-4 flex-row items-center border-b border-gray-100">
