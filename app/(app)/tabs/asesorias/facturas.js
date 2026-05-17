@@ -211,20 +211,26 @@ export default function FacturasScreen() {
   const [previewLoading, setPreviewLoading] = useState(false);
 
   const openInvoicePreview = async (invoiceId, type) => {
+    setPreviewLoading(true);
+    // Hard timeout: si el endpoint se cuelga, no dejamos el overlay vivo eternamente
+    const timeoutId = setTimeout(() => {
+      setPreviewLoading(false);
+      Alert.alert("Tiempo agotado", "La vista previa está tardando demasiado. Inténtalo de nuevo.");
+    }, 20000);
     try {
-      setPreviewLoading(true);
       const res = await fetchWithAuth("app-invoice-preview", {
         invoice_id: invoiceId,
         type,
       });
-      if (res.status === "ok" && res.data?.html) {
+      if (res?.status === "ok" && res.data?.html) {
         router.push({ pathname: "/webview", params: { html: res.data.html } });
       } else {
-        Alert.alert("Error", res.message || "No se pudo cargar la factura");
+        Alert.alert("Error", res?.message || "No se pudo cargar la factura");
       }
     } catch (_error) {
       Alert.alert("Error", "No se pudo abrir la factura");
     } finally {
+      clearTimeout(timeoutId);
       setPreviewLoading(false);
     }
   };
@@ -1046,10 +1052,13 @@ export default function FacturasScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      {/* Loading overlay for invoice preview */}
+      {/* Loading overlay for invoice preview — opacidad baja para no oscurecer todo el listado, con texto explicativo */}
       {previewLoading && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)', zIndex: 999, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color="#30D4D1" />
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.15)', zIndex: 999, justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: 'white', paddingVertical: 20, paddingHorizontal: 32, borderRadius: 16, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 6 }}>
+            <ActivityIndicator size="large" color="#30D4D1" />
+            <Text style={{ marginTop: 12, color: '#374151', fontWeight: '500' }}>Generando vista previa...</Text>
+          </View>
         </View>
       )}
       {/* Header */}
