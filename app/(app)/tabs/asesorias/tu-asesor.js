@@ -15,6 +15,7 @@ import {
   Alert,
   ActivityIndicator,
   Linking,
+  ScrollView,
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -34,6 +35,16 @@ export default function TuAsesorScreen() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [allowChat, setAllowChat] = useState(true);
+  // 17/05 (Erlantz): chat por hilos de departamento
+  const [departments, setDepartments] = useState([]);
+  const [activeTab, setActiveTab] = useState("all"); // "all" | "general" | "<dept_id>"
+
+  // Mapa id->name para badges
+  const deptNameById = (id) => {
+    if (!id) return "General";
+    const d = departments.find((x) => String(x.id) === String(id));
+    return d ? d.name : "General";
+  };
 
   const loadMessages = useCallback(async () => {
     try {
@@ -44,9 +55,20 @@ export default function TuAsesorScreen() {
       );
       if (response?.status === "ok") {
         setAdvisory(response.data?.advisory || null);
-        setMessages(response.data?.messages || []);
+        const msgs = response.data?.messages || [];
+        setMessages(msgs);
         setUnreadCount(response.data?.unread_count || 0);
         setAllowChat(response.data?.allow_chat !== false);
+        const depts = response.data?.departments || [];
+        setDepartments(depts);
+        // Auto-tab del ultimo mensaje con dept (solo la primera vez que cargamos)
+        setActiveTab((prev) => {
+          if (prev !== "all") return prev; // ya cambiada por el user
+          if (depts.length === 0 || msgs.length === 0) return prev;
+          const last = msgs[msgs.length - 1];
+          if (last?.department_id) return String(last.department_id);
+          return prev;
+        });
       }
     } catch (_error) {
       // Silenciar
@@ -129,6 +151,13 @@ export default function TuAsesorScreen() {
         });
       }
 
+      // 17/05 (Erlantz): si hay una tab activa con dept, enviamos al hilo correcto
+      const sentDeptId =
+        activeTab !== "all" && activeTab !== "general" ? activeTab : null;
+      if (sentDeptId) {
+        formData.append("department_id", sentDeptId);
+      }
+
       const response = await fetchWithAuth(
         "app-advisory-general-chat-send",
         formData,
@@ -148,6 +177,7 @@ export default function TuAsesorScreen() {
             file_url: response.data?.file_url || null,
             is_read: false,
             created_at: new Date().toISOString(),
+            department_id: sentDeptId ? Number(sentDeptId) : null,
           },
         ]);
       } else {
@@ -230,19 +260,42 @@ export default function TuAsesorScreen() {
                 </TouchableOpacity>
               )}
             </View>
-            <Text
-              className={`text-xs text-gray-400 mt-1 ${
-                isCustomer ? "text-right" : "text-left"
+            <View
+              className={`flex-row items-center mt-1 ${
+                isCustomer ? "justify-end" : "justify-start"
               }`}
             >
-              {formatMessageTime(item.created_at)}
-            </Text>
+              <Text className="text-xs text-gray-400">
+                {formatMessageTime(item.created_at)}
+              </Text>
+              {/* 17/05: badge del departamento al lado de la hora */}
+              <View
+                className={`ml-2 px-2 py-0.5 rounded-md ${
+                  item.department_id ? "bg-sky-100" : "bg-gray-100"
+                }`}
+              >
+                <Text
+                  className={`text-[10px] ${
+                    item.department_id ? "text-sky-700" : "text-gray-500"
+                  }`}
+                >
+                  {deptNameById(item.department_id)}
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
       );
     },
-    [messages],
+    [messages, departments],
   );
+
+  // 17/05: filtrar mensajes segun tab activa
+  const visibleMessages = messages.filter((m) => {
+    if (activeTab === "all") return true;
+    if (activeTab === "general") return !m.department_id;
+    return String(m.department_id) === String(activeTab);
+  });
 
   const keyExtractor = useCallback((item) => item.id.toString(), []);
 
@@ -316,10 +369,48 @@ export default function TuAsesorScreen() {
         </View>
       </View>
 
+      {/* 17/05 (Erlantz): tabs por hilo/departamento */}
+      {departments.length > 0 && (
+        <View className="bg-white border-b border-gray-100">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 6 }}
+          >
+            {[
+              { key: "all", label: "Todos" },
+              { key: "general", label: "General" },
+              ...departments.map((d) => ({ key: String(d.id), label: d.name })),
+            ].map((t) => {
+              const isActive = activeTab === t.key;
+              return (
+                <TouchableOpacity
+                  key={t.key}
+                  onPress={() => setActiveTab(t.key)}
+                  className={`px-3 py-1.5 mr-2 rounded-full ${
+                    isActive ? "bg-primary" : "bg-gray-100"
+                  }`}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: isActive }}
+                >
+                  <Text
+                    className={`text-xs font-semibold ${
+                      isActive ? "text-white" : "text-gray-600"
+                    }`}
+                  >
+                    {t.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
+
       {/* Messages */}
       <FlatList
         ref={flatListRef}
-        data={messages}
+        data={visibleMessages}
         renderItem={renderMessage}
         keyExtractor={keyExtractor}
         contentContainerStyle={{ padding: 16, flexGrow: 1 }}
@@ -327,10 +418,14 @@ export default function TuAsesorScreen() {
           <View className="flex-1 items-center justify-center py-10">
             <Text className="text-5xl mb-4">💬</Text>
             <Text className="text-gray-500 text-center text-lg">
-              Comienza una conversación
+              {activeTab === "all" || activeTab === "general"
+                ? "Comienza una conversación"
+                : "Sin mensajes en este hilo aún"}
             </Text>
             <Text className="text-gray-400 text-center text-sm mt-1 px-6">
-              Envía mensajes y archivos directamente a tu asesoría
+              {activeTab === "all" || activeTab === "general"
+                ? "Envía mensajes y archivos directamente a tu asesoría"
+                : "Escribe el primer mensaje a este departamento"}
             </Text>
           </View>
         }
