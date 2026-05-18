@@ -356,7 +356,11 @@ export default function TuAsesorScreen() {
       // la mayoria de devices independientemente del softwareKeyboardLayoutMode.
       behavior="padding"
       className="flex-1 bg-background"
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 64}
+      // v1.5.7 (18/05 Erlantz captura): el offset 64 en Android dejaba el
+      // input cortado por la mitad bajo el teclado (lo empujaba 64px hacia
+      // abajo). En Android con react-native-keyboard-controller el offset
+      // debe ser 0 — el header ya se queda fuera del padding aplicado.
+      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
       {/* Header */}
       <View className="bg-white p-4 flex-row items-center border-b border-gray-100">
