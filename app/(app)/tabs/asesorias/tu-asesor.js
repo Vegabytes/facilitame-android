@@ -16,10 +16,13 @@ import {
   Linking,
   ScrollView,
 } from "react-native";
-// v1.5.6 (18/05): KeyboardAvoidingView nativo no funciona bien con la
-// new architecture de RN 0.76 (Expo SDK 52). Usamos el de
-// react-native-keyboard-controller que sí está disenado para new arch.
-import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+// v1.5.8 (18/05): tras 5 intentos con KeyboardAvoidingView (de RN y de
+// keyboard-controller) sin resultado en el dispositivo de Erlantz,
+// cambiamos a KeyboardStickyView — componente específico de la
+// librería para inputs estilo chat que se "pegan" al borde superior
+// del teclado cuando aparece. Es el patrón recomendado por la doc
+// oficial para este caso de uso.
+import { KeyboardStickyView } from "react-native-keyboard-controller";
 import * as DocumentPicker from "expo-document-picker";
 import { useRouter, useFocusEffect } from "expo-router";
 import { fetchWithAuth } from "../../../../utils/api";
@@ -348,20 +351,11 @@ export default function TuAsesorScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      // 17/05 v2 (Erlantz 22:38): el fix anterior (behavior=undefined en
-      // Android) no funciono en algunos OEMs aunque adjustResize estaba
-      // activo. Plan B: usar 'padding' en ambas plataformas con offset
-      // ajustado al header (~64px). Es lo mas conservador y funciona en
-      // la mayoria de devices independientemente del softwareKeyboardLayoutMode.
-      behavior="padding"
-      className="flex-1 bg-background"
-      // v1.5.7 (18/05 Erlantz captura): el offset 64 en Android dejaba el
-      // input cortado por la mitad bajo el teclado (lo empujaba 64px hacia
-      // abajo). En Android con react-native-keyboard-controller el offset
-      // debe ser 0 — el header ya se queda fuera del padding aplicado.
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-    >
+    // v1.5.8 (18/05): View root con flex-1. El input + preview de file
+    // van envueltos al final con KeyboardStickyView (que se desplaza solo
+    // cuando aparece el teclado). El resto del layout (header, tabs,
+    // FlatList) se queda quieto.
+    <View className="flex-1 bg-background">
       {/* Header */}
       <View className="bg-white p-4 flex-row items-center border-b border-gray-100">
         <TouchableOpacity
@@ -443,23 +437,26 @@ export default function TuAsesorScreen() {
         }
       />
 
-      {/* Selected File Preview */}
-      {selectedFile && (
-        <View className="bg-white mx-4 mb-2 p-3 rounded-xl flex-row items-center">
-          <Text className="text-xl mr-2">
-            {selectedFile.name?.endsWith(".pdf") ? "📄" : "🖼️"}
-          </Text>
-          <Text className="flex-1" numberOfLines={1}>
-            {selectedFile.name}
-          </Text>
-          <TouchableOpacity onPress={() => setSelectedFile(null)}>
-            <Text className="text-red-500 text-lg">✕</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      {/* v1.5.8: KeyboardStickyView envuelve el preview + input para que
+          se peguen al borde superior del teclado cuando se abre. */}
+      <KeyboardStickyView>
+        {/* Selected File Preview */}
+        {selectedFile && (
+          <View className="bg-white mx-4 mb-2 p-3 rounded-xl flex-row items-center">
+            <Text className="text-xl mr-2">
+              {selectedFile.name?.endsWith(".pdf") ? "📄" : "🖼️"}
+            </Text>
+            <Text className="flex-1" numberOfLines={1}>
+              {selectedFile.name}
+            </Text>
+            <TouchableOpacity onPress={() => setSelectedFile(null)}>
+              <Text className="text-red-500 text-lg">✕</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
-      {/* Message Input */}
-      <View className="bg-white p-3 flex-row items-end border-t border-gray-100">
+        {/* Message Input */}
+        <View className="bg-white p-3 flex-row items-end border-t border-gray-100">
         <TouchableOpacity
           onPress={pickDocument}
           className="p-3 mr-2"
@@ -494,7 +491,8 @@ export default function TuAsesorScreen() {
             <Text className="text-white font-bold">➤</Text>
           )}
         </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+        </View>
+      </KeyboardStickyView>
+    </View>
   );
 }

@@ -3,7 +3,7 @@
     "scheme": "facilitame",
     "slug": "facilitame",
     "name": "Facilítame",
-    "version": "1.5.7",
+    "version": "1.5.8",
     "orientation": "portrait",
     "platforms": [
       "ios",
@@ -41,7 +41,7 @@
       },
       "label": "Facilítame",
       "softwareKeyboardLayoutMode": "pan",
-      "versionCode": 92,
+      "versionCode": 93,
       "intentFilters": [
         {
           "action": "VIEW",
