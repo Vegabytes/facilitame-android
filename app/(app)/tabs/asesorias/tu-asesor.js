@@ -10,13 +10,16 @@ import {
   FlatList,
   TouchableOpacity,
   TextInput,
-  KeyboardAvoidingView,
   Platform,
   Alert,
   ActivityIndicator,
   Linking,
   ScrollView,
 } from "react-native";
+// v1.5.6 (18/05): KeyboardAvoidingView nativo no funciona bien con la
+// new architecture de RN 0.76 (Expo SDK 52). Usamos el de
+// react-native-keyboard-controller que sí está disenado para new arch.
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import * as DocumentPicker from "expo-document-picker";
 import { useRouter, useFocusEffect } from "expo-router";
 import { fetchWithAuth } from "../../../../utils/api";

@@ -7,6 +7,11 @@ import { useFonts } from "expo-font";
 import * as Notifications from "expo-notifications";
 import { registerForPushNotificationsAsync } from "../utils/notifications";
 import { useRouter } from "expo-router";
+// v1.5.6 (18/05): wrap del root con KeyboardProvider para que
+// react-native-keyboard-controller funcione con new architecture
+// de RN 0.76 (Expo SDK 52) y reemplace al KeyboardAvoidingView nativo
+// que estaba roto en el chat móvil.
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import "../global.css";
 
 // Extraer deeplink de la notificación buscando en todas las ubicaciones posibles
@@ -176,9 +181,11 @@ export default function RootLayout() {
   });
 
   return (
-    <AuthProvider>
-      <NotificationHandler />
-      <Stack screenOptions={{ headerShown: false, animation: "fade" }} />
-    </AuthProvider>
+    <KeyboardProvider>
+      <AuthProvider>
+        <NotificationHandler />
+        <Stack screenOptions={{ headerShown: false, animation: "fade" }} />
+      </AuthProvider>
+    </KeyboardProvider>
   );
 }
