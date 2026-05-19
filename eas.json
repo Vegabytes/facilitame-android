@@ -36,6 +36,15 @@
       "ios": {
         "ascAppId": "6742243720"
       }
+    },
+    "internal": {
+      "android": {
+        "serviceAccountKeyPath": "./facilitame-6ab1d-a35e52bc1476.json",
+        "track": "internal"
+      },
+      "ios": {
+        "ascAppId": "6742243720"
+      }
     }
   }
 }
