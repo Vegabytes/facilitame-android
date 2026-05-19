@@ -30,7 +30,7 @@
   "submit": {
     "production": {
       "android": {
-        "serviceAccountKeyPath": "./facilitame-6ab1d-a35e52bc1476.json",
+        "serviceAccountKeyPath": "./facilitame-6ab1d-d23a99ab1b51.json",
         "track": "production"
       },
       "ios": {
@@ -39,7 +39,7 @@
     },
     "internal": {
       "android": {
-        "serviceAccountKeyPath": "./facilitame-6ab1d-a35e52bc1476.json",
+        "serviceAccountKeyPath": "./facilitame-6ab1d-d23a99ab1b51.json",
         "track": "internal"
       },
       "ios": {
