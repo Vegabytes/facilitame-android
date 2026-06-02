@@ -19,6 +19,7 @@ import {
   Image,
   Dimensions,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
@@ -40,6 +41,9 @@ const MONTH_NAMES = [
 export default function NominasScreen() {
   const router = useRouter();
   const { autoUpload } = useLocalSearchParams();
+  // Safe-area inferior: evita que el botón "Subir nóminas" quede tapado por la
+  // barra del sistema (Android 3 botones / iOS home indicator).
+  const insets = useSafeAreaInsets();
   const [payrolls, setPayrolls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -772,7 +776,10 @@ export default function NominasScreen() {
         }}
       >
         <View className="flex-1 bg-background">
-          <ScrollView className="flex-1 p-5">
+          <ScrollView
+            className="flex-1 p-5"
+            contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+          >
             {/* Header */}
             <View className="flex-row items-center justify-between mb-5">
               <TouchableOpacity

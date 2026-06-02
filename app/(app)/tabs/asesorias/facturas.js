@@ -20,6 +20,7 @@ import {
   Image,
   Dimensions,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
@@ -45,6 +46,10 @@ const STATUS_CONFIG = {
 export default function FacturasScreen() {
   const router = useRouter();
   const { autoUpload } = useLocalSearchParams();
+  // Safe-area inferior: en Android con barra de 3 botones (o iOS con home
+  // indicator) el botón "Enviar factura" quedaba tapado por la barra del
+  // sistema. Reservamos ese espacio en el scroll del modal de envío.
+  const insets = useSafeAreaInsets();
 
   // Tab: "enviadas" o "emitidas"
   const [activeTab, setActiveTab] = useState("enviadas");
@@ -1247,7 +1252,11 @@ export default function FacturasScreen() {
             <Text className="font-bold text-lg flex-1">Enviar Factura</Text>
           </View>
 
-          <ScrollView className="flex-1 p-5" keyboardShouldPersistTaps="handled">
+          <ScrollView
+            className="flex-1 p-5"
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+          >
             <TouchableOpacity
               className="border-2 border-dashed border-gray-300 rounded-xl p-6 items-center mb-5"
               onPress={showSourcePicker}
