@@ -84,3 +84,5 @@ facilitame-*.json
 
 # Claude Code
 .claude/
+# CNG: Android se regenera via expo prebuild en EAS (como ios/)
+/android

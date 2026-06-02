@@ -21,7 +21,7 @@
     "ios": {
       "bundleIdentifier": "com.boldsoftware.facilitame",
       "supportsTablet": true,
-      "buildNumber": "39",
+      "buildNumber": "40",
       "associatedDomains": [
         "applinks:app.facilitame.es",
         "webcredentials:app.facilitame.es"
@@ -39,9 +39,8 @@
         "foregroundImage": "./assets/ic_launcher_foreground.png",
         "backgroundImage": "./assets/ic_launcher_background.png"
       },
-      "label": "Facilítame",
       "softwareKeyboardLayoutMode": "pan",
-      "versionCode": 94,
+      "versionCode": 96,
       "intentFilters": [
         {
           "action": "VIEW",
