@@ -76,6 +76,15 @@
           "icon": "./assets/ic_launcher.png",
           "color": "#30D4D1"
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36
+          }
+        }
       ]
     ],
     "extra": {
