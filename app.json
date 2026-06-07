@@ -85,7 +85,8 @@
             "targetSdkVersion": 36
           }
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "router": {
